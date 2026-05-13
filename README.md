@@ -23,6 +23,11 @@ MC_Color_space is a Minecraft datapack that brings interactive color space visua
 
 This datapack transforms Minecraft into a color exploration tool, perfect for artists, designers, and anyone interested in color theory.
 
+## Version info
+
+(26.1.2/vanilla)
+default launcher (other launchers may run into issues with clickEvents)
+
 ### future challenges
 
 place ingame textures at the appropiate position in the color spaces
