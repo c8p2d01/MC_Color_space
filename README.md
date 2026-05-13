@@ -15,6 +15,7 @@ MC_Color_space is a Minecraft datapack that brings interactive color space visua
 ## Controls Summary
 
 - **Book Interface**: Obtain and use the color control book to access UI functions for setting location, scale, style, and cover options
+use /function color_field:give_book
 - **Rendering**: Execute render commands to generate color fields based on selected parameters
 - **Density**: Switch between density levels (1-4) for varying detail in color representations
 - **Scaling**: Use scale commands to zoom in/out, reset, or apply scaling transformations (to the player)
@@ -27,6 +28,8 @@ This datapack transforms Minecraft into a color exploration tool, perfect for ar
 
 (26.1.2/vanilla)
 default launcher (other launchers may run into issues with clickEvents)
+
+the folder "color_plains" contains the actual datapack and needs to be moved as it is into the datapacks folder of your world
 
 ### future challenges
 
