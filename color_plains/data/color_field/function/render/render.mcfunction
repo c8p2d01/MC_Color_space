@@ -94,7 +94,7 @@ run function color_field:render/lab/density_4
 execute \
 if score @s cf_coltype matches 4 \
 if score @s cf_density matches 1 \
-run function color_field:render/oklch/density_1
+run function color_field:render/oklab/density_1
 
 # density 2
 execute \

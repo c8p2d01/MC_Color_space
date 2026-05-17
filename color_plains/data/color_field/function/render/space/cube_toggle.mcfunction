@@ -55,5 +55,3 @@ scoreboard players set @s cf_cube 1
 
 tag @s remove cf_cube_on
 tag @s remove cf_cube_off
-
-function color_field:ui/set_location

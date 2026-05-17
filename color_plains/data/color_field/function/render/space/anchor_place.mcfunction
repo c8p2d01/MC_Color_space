@@ -46,4 +46,4 @@ set from entity @e[type=marker,tag=color_field_anchor,limit=1] Pos
 # feedback
 tellraw @s {"text":"Color Field anchor initialized","color":"green"}
 
-function color_field:ui/set_location
+function color_field:render/render

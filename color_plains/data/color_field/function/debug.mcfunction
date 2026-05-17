@@ -1,0 +1,1 @@
+execute as @e[tag=sphere_marker] at @s run particle minecraft:flame ~ ~ ~ 0 0 0 0 1 force
