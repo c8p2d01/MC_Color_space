@@ -1,6 +1,6 @@
-execute as @e[type=interaction,tag=layer_2,tag=yawstep_60] at @s run \
+execute as @e[type=interaction,tag=layer_2,tag=yawstep_45] at @s run \
     summon text_display ^ ^ ^ {\
-    Tags:["color_field","color_field_ui","transform_node","render_rgb","density_1"],\
+    Tags:["color_field","color_field_ui"],\
     text:{"text":"LAB","color":"red"},\
     billboard:"center",\
     brightness:{block:15,sky:15},\
@@ -12,4 +12,4 @@ execute as @e[type=interaction,tag=layer_2,tag=yawstep_60] at @s run \
     }\
 }
 
-tag @e[type=interaction,tag=layer_2,tag=yawstep_60,limit=1] add set_lab
+tag @e[type=interaction,tag=layer_2,tag=yawstep_45,limit=1] add set_lab

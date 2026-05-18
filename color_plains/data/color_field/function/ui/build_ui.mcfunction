@@ -43,3 +43,7 @@ function color_field:ui/elements/set_color_density_fancy
 function color_field:ui/elements/set_color_density_high
 function color_field:ui/elements/set_color_density_mid
 function color_field:ui/elements/set_color_density_low
+
+function color_field:ui/elements/_stone
+function color_field:ui/elements/_dirt
+function color_field:ui/elements/_granite

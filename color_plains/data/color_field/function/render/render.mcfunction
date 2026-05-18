@@ -3,13 +3,33 @@
 function color_field:render/clear
 
 #
+#             Blocks
+#
+
+execute \
+if score @s cf_coltype matches 8 \
+if score @s cf_block_dirt matches 1 \
+run function color_field:render/blocks/dirt
+
+execute \
+if score @s cf_coltype matches 8 \
+if score @s cf_block_stone matches 1 \
+run function color_field:render/blocks/stone
+
+execute \
+if score @s cf_coltype matches 8 \
+if score @s cf_block_granite matches 1 \
+run function color_field:render/blocks/grian
+
+
+#
 #             RGB
 #
 
-# tellraw @a [{"text":"Tags des rens: "},{"nbt":"Tags","entity":"@s","color":"yellow"}]
-# tellraw @a [{"text":"Coltype: ","color":"gray"},{"score":{"name":"@s","objective":"cf_coltype"},"color":"gold"}]
-# tellraw @a [{"text":"Density: ","color":"gray"},{"score":{"name":"@s","objective":"cf_density"},"color":"gold"}]
-
+execute \
+if score @s cf_coltype matches 1 \
+if score @s cf_density matches 1 \
+run function color_field:render/colors/rgb/density_1
 
 # density 1
 execute \
@@ -148,7 +168,6 @@ if score @s cf_density matches 4 \
 run function color_field:render/colors/oklch/density_4
 
 execute if score @s cf_feedback matches 1 run tellraw @s {"text":"re rendered","color":"green"}
-execute store result score #count cf_counter_node run execute if entity @e[type=text_display,tag=color_field_node]
 
 execute store result score #count cf_counter_node run execute if entity @e[type=text_display,tag=color_field_node]
 

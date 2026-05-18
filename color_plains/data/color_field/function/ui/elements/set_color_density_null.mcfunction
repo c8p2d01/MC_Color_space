@@ -1,4 +1,4 @@
-execute as @e[type=interaction,tag=layer_4,tag=yawstep_80] at @s run \
+execute as @e[type=interaction,tag=layer_0,tag=yawstep_60] at @s run \
     summon text_display ^ ^ ^ {\
     Tags:["color_field","color_field_ui","transform_node"],\
     text:{"text":"None","color":"blue"},\
@@ -12,4 +12,4 @@ execute as @e[type=interaction,tag=layer_4,tag=yawstep_80] at @s run \
     }\
 }
 
-tag @e[type=interaction,tag=layer_4,tag=yawstep_80,limit=1] add set_density_null
+tag @e[type=interaction,tag=layer_0,tag=yawstep_60,limit=1] add set_density_null

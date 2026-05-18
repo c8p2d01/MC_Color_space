@@ -10,6 +10,14 @@ execute as @p run scoreboard players set @s cf_coltype 4
 execute as @p run scoreboard players set @s cf_density 2
 execute as @p run function color_field:render/render
 
+scoreboard objectives add cf_block_stone dummy
+scoreboard objectives add cf_block_dirt dummy
+scoreboard objectives add cf_block_granite dummy
+
+execute as @p run scoreboard players set @s cf_block_stone 1
+execute as @p run scoreboard players set @s cf_block_dirt 1
+execute as @p run scoreboard players set @s cf_block_granite 1
+
 scoreboard objectives add click_wand minecraft.used:minecraft.carrot_on_a_stick
 scoreboard objectives add place_wand minecraft.used:minecraft.carrot_on_a_stick
 

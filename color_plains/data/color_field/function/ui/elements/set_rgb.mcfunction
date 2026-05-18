@@ -1,4 +1,4 @@
-execute as @e[type=interaction,tag=layer_4,tag=yawstep_60] at @s run \
+execute as @e[type=interaction,tag=layer_4,tag=yawstep_45] at @s run \
     summon text_display ^ ^ ^ {\
     Tags:["color_field","color_field_ui","transform_node"],\
     text:{"text":"RGB","color":"light_purple"},\
@@ -12,4 +12,4 @@ execute as @e[type=interaction,tag=layer_4,tag=yawstep_60] at @s run \
     }\
 }
 
-tag @e[type=interaction,tag=layer_4,tag=yawstep_60,limit=1] add set_rgb
+tag @e[type=interaction,tag=layer_4,tag=yawstep_45,limit=1] add set_rgb

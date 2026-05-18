@@ -1,7 +1,7 @@
-execute as @e[type=interaction,tag=layer_0,tag=yawstep_15] at @s run \
+execute as @e[type=interaction,tag=layer_4,tag=yawstep_330] at @s run \
     summon text_display ^ ^ ^ {\
     Tags:["color_field","color_field_ui"],\
-    text:{"text":"toggle\nrender\nAnchor","color":"gray"},\
+    text:{"text":"Stone","color":"dark_gray"},\
     billboard:"center",\
     brightness:{block:15,sky:15},\
     transformation:{\
@@ -12,4 +12,4 @@ execute as @e[type=interaction,tag=layer_0,tag=yawstep_15] at @s run \
     }\
 }
 
-tag @e[type=interaction,tag=layer_0,tag=yawstep_15,limit=1] add toggle_render_anchor
+tag @e[type=interaction,tag=layer_4,tag=yawstep_330,limit=1] add toggle_stone

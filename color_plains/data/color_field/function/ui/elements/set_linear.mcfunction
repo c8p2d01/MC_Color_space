@@ -1,7 +1,7 @@
-execute as @e[type=interaction,tag=layer_0,tag=yawstep_15] at @s run \
+execute as @e[type=interaction,tag=layer_0,tag=yawstep_30] at @s run \
     summon text_display ^ ^ ^ {\
     Tags:["color_field","color_field_ui"],\
-    text:{"text":"toggle\nrender\nAnchor","color":"gray"},\
+    text:{"text":"Linear","color":"green"},\
     billboard:"center",\
     brightness:{block:15,sky:15},\
     transformation:{\
@@ -12,4 +12,4 @@ execute as @e[type=interaction,tag=layer_0,tag=yawstep_15] at @s run \
     }\
 }
 
-tag @e[type=interaction,tag=layer_0,tag=yawstep_15,limit=1] add toggle_render_anchor
+tag @e[type=interaction,tag=layer_0,tag=yawstep_30,limit=1] add set_linear

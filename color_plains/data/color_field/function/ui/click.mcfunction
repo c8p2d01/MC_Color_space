@@ -18,5 +18,9 @@ execute if entity @s[tag=set_density_high] if data entity @s interaction.player 
 execute if entity @s[tag=set_density_mid] if data entity @s interaction.player on target run function color_field:render/colors/density/set_2
 execute if entity @s[tag=set_density_low] if data entity @s interaction.player on target run function color_field:render/colors/density/set_1
 
+execute if entity @s[tag=toggle_stone] if data entity @s interaction.player on target run function color_field:ui/logics/_stone
+execute if entity @s[tag=toggle_dirt] if data entity @s interaction.player on target run function color_field:ui/logics/_dirt
+execute if entity @s[tag=toggle_granite] if data entity @s interaction.player on target run function color_field:ui/logics/_granite
+
 data remove entity @s interaction
 

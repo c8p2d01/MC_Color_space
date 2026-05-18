@@ -1,6 +1,6 @@
-execute as @e[type=interaction,tag=layer_2,tag=yawstep_320] at @s run \
+execute as @e[type=interaction,tag=layer_0,tag=yawstep_345] at @s run \
     summon text_display ^ ^ ^ {\
-    Tags:["color_field","color_field_ui","transform_node","render_rgb","density_1"],\
+    Tags:["color_field","color_field_ui"],\
     text:{"text":"toggle\naction\nfeedback","color":"gray"},\
     billboard:"center",\
     brightness:{block:15,sky:15},\
@@ -12,4 +12,4 @@ execute as @e[type=interaction,tag=layer_2,tag=yawstep_320] at @s run \
     }\
 }
 
-tag @e[type=interaction,tag=layer_2,tag=yawstep_320,limit=1] add toggle_feedback
+tag @e[type=interaction,tag=layer_0,tag=yawstep_345,limit=1] add toggle_feedback
