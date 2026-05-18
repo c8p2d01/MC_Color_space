@@ -1,4 +1,4 @@
-tellraw @a {"text":"[Color Field] UI","color":"red"}
+execute if score @s cf_feedback matches 1 run tellraw @a {"text":"[Color Field] UI","color":"red"}
 
 tag @p remove color_field_has_ui
 

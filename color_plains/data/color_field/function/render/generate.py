@@ -90,13 +90,15 @@ def classify_density_oklch(l,c,h):
 
 def create_summon_string(x, y, z, r, g, b, d, type):
     return (\
-        f"execute as @e[tag=color_field_anchor,limit=1] run summon text_display ^ ^ ^ {{"\
-        f"Tags:[\"color_field\",\"transform_node\",\"render_{type}\",\"density_{d}\"],"\
+        f"execute as @e[tag=color_field_anchor,limit=1] at @s run summon text_display "\
+        f"~{(x - CUBE_SIZE / 2):.4f} ~{(y - CUBE_SIZE / 2):.4f} ~{(z - CUBE_SIZE / 2):.4f} {{"\
+        f"Tags:[\"color_field\",\"color_field_node\",\"render_{type}\",\"density_{d}\"],"\
         f"text:{{\"text\":\"⬤\",\"color\":\"#{r:02x}{b:02x}{g:02x}\"}},"\
         f"background:0,"\
+        f"brightness:{{block:15,sky:15}},"\
         f"billboard:\"center\","\
         f"transformation:{{"\
-        f"translation:[{x - CUBE_SIZE / 2}f,{y - CUBE_SIZE / 2}f,{z - CUBE_SIZE / 2}f],"\
+        f"translation:[0f,0f,0f],"\
         f"left_rotation:[0f,0f,0f,1f],"\
         f"right_rotation:[0f,0f,0f,1f],"\
         f"scale:[{CUBE_SIZE / 4}f,{CUBE_SIZE / 4}f,{CUBE_SIZE / 4}f]"\
@@ -105,10 +107,10 @@ def create_summon_string(x, y, z, r, g, b, d, type):
     )
 
 def generate_rgb():
-    destination_1 = open("rgb/density_1.mcfunction", "a")
-    destination_2 = open("rgb/density_2.mcfunction", "a")
-    destination_3 = open("rgb/density_3.mcfunction", "a")
-    destination_4 = open("rgb/density_4.mcfunction", "a")
+    destination_1 = open("colors/rgb/density_1.mcfunction", "a")
+    destination_2 = open("colors/rgb/density_2.mcfunction", "a")
+    destination_3 = open("colors/rgb/density_3.mcfunction", "a")
+    destination_4 = open("colors/rgb/density_4.mcfunction", "a")
     counter = 0;
     RESOLUTION = 16
     STEP = CUBE_SIZE / (RESOLUTION - 1)
@@ -138,10 +140,10 @@ def generate_rgb():
     destination_4.close()
 
 def generate_hsl():
-    destination_1 = open("hsl/density_1.mcfunction", "a")
-    destination_2 = open("hsl/density_2.mcfunction", "a")
-    destination_3 = open("hsl/density_3.mcfunction", "a")
-    destination_4 = open("hsl/density_4.mcfunction", "a")
+    destination_1 = open("colors/hsl/density_1.mcfunction", "a")
+    destination_2 = open("colors/hsl/density_2.mcfunction", "a")
+    destination_3 = open("colors/hsl/density_3.mcfunction", "a")
+    destination_4 = open("colors/hsl/density_4.mcfunction", "a")
 
     HUE_RESOLUTION = 48
     SATURATION_RESOLUTION = 12
@@ -184,10 +186,10 @@ def generate_hsl():
     destination_4.close()
 
 def generate_lab():
-    destination_1=open("lab/density_1.mcfunction","a")
-    destination_2=open("lab/density_2.mcfunction","a")
-    destination_3=open("lab/density_3.mcfunction","a")
-    destination_4=open("lab/density_4.mcfunction","a")
+    destination_1=open("colors/lab/density_1.mcfunction","a")
+    destination_2=open("colors/lab/density_2.mcfunction","a")
+    destination_3=open("colors/lab/density_3.mcfunction","a")
+    destination_4=open("colors/lab/density_4.mcfunction","a")
     RESOLUTION=24
     HALF=CUBE_SIZE/2
     SAMPLES=6000
@@ -224,10 +226,10 @@ def generate_lab():
     destination_4.close()
 
 def generate_oklab():
-    destination_1=open("oklab/density_1.mcfunction","a")
-    destination_2=open("oklab/density_2.mcfunction","a")
-    destination_3=open("oklab/density_3.mcfunction","a")
-    destination_4=open("oklab/density_4.mcfunction","a")
+    destination_1=open("colors/oklab/density_1.mcfunction","a")
+    destination_2=open("colors/oklab/density_2.mcfunction","a")
+    destination_3=open("colors/oklab/density_3.mcfunction","a")
+    destination_4=open("colors/oklab/density_4.mcfunction","a")
     HALF=CUBE_SIZE/2
     SAMPLES=20000
     for i in range(SAMPLES):
@@ -263,10 +265,10 @@ def generate_oklab():
     destination_4.close()
 
 def generate_oklch():
-    destination_1=open("oklch/density_1.mcfunction","a")
-    destination_2=open("oklch/density_2.mcfunction","a")
-    destination_3=open("oklch/density_3.mcfunction","a")
-    destination_4=open("oklch/density_4.mcfunction","a")
+    destination_1=open("colors/oklch/density_1.mcfunction","a")
+    destination_2=open("colors/oklch/density_2.mcfunction","a")
+    destination_3=open("colors/oklch/density_3.mcfunction","a")
+    destination_4=open("colors/oklch/density_4.mcfunction","a")
     MAX_CHROMA=0.37
     LIGHTNESS_STEPS=24
     HUE_STEPS=48
@@ -316,11 +318,11 @@ def reset_folder(dir, n):
         file.close()
 
 def reset_files():
-    reset_folder("rgb", 4)
-    reset_folder("hsl", 4)
-    reset_folder("lab", 4)
-    reset_folder("oklab", 4)
-    reset_folder("oklch", 4)
+    reset_folder("colors/rgb", 4)
+    reset_folder("colors/hsl", 4)
+    reset_folder("colors/lab", 4)
+    reset_folder("colors/oklab", 4)
+    reset_folder("colors/oklch", 4)
 
 if __name__ == "__main__":
     reset_files()
