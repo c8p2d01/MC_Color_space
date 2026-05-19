@@ -12,5 +12,7 @@ execute as @e[type=interaction,tag=sphere_marker] if data entity @s interaction.
 # placement trigger
 execute as @a[scores={click_wand=1..}] if items entity @s weapon.mainhand carrot_on_a_stick[custom_data={color_field:{render_wand:true}}] run function color_field:render/functions/place_anchor
 
-#execute at @p run data modify entity @e[type=block_display,distance=..6] glowing set value 0b
-#execute at @p run data modify entity @e[type=block_display,sort=nearest,limit=1,distance=..5] glowing set value 1b
+execute as @e[type=block_display,tag=color_field_block] run data modify entity @s glowing set value 0b
+execute as @p at @s run data modify entity @e[type=block_display,tag=color_field_block,sort=nearest,limit=1,distance=..1] glowing set value 1b
+kill @e[type=interaction,tag=cf_selector]
+execute as @s at @s run execute as @e[type=block_display,tag=color_field_block,sort=nearest,limit=1,distance=..1] run function color_field:render/functions/_give_block_inner

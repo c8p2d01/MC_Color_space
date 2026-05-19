@@ -19,8 +19,16 @@ execute if entity @s[tag=set_density_mid] if data entity @s interaction.player o
 execute if entity @s[tag=set_density_low] if data entity @s interaction.player on target run function color_field:render/colors/density/set_1
 
 execute if entity @s[tag=toggle_stone] if data entity @s interaction.player on target run function color_field:ui/logics/_stone
-execute if entity @s[tag=toggle_dirt] if data entity @s interaction.player on target run function color_field:ui/logics/_dirt
-execute if entity @s[tag=toggle_granite] if data entity @s interaction.player on target run function color_field:ui/logics/_granite
+execute if entity @s[tag=toggle_end] if data entity @s interaction.player on target run function color_field:ui/logics/_end
+execute if entity @s[tag=toggle_light] if data entity @s interaction.player on target run function color_field:ui/logics/_light
+execute if entity @s[tag=toggle_nether] if data entity @s interaction.player on target run function color_field:ui/logics/_nether
+execute if entity @s[tag=toggle_ore] if data entity @s interaction.player on target run function color_field:ui/logics/_ore
+execute if entity @s[tag=toggle_soil] if data entity @s interaction.player on target run function color_field:ui/logics/_soil
+execute if entity @s[tag=toggle_wood] if data entity @s interaction.player on target run function color_field:ui/logics/_wood
+execute if entity @s[tag=toggle_wool] if data entity @s interaction.player on target run function color_field:ui/logics/_wool
+execute if entity @s[tag=toggle_wool] if data entity @s interaction.player on target run function color_field:ui/logics/_utility
+
+execute if entity @s[tag=cf_selector] if data entity @s interaction.player on target run say hello
 
 data remove entity @s interaction
 

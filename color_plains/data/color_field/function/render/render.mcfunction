@@ -8,8 +8,28 @@ function color_field:render/clear
 
 execute \
 if score @s cf_coltype matches 8 \
-if score @s cf_block_dirt matches 1 \
-run function color_field:render/blocks/dirt
+if score @s cf_block_end matches 1 \
+run function color_field:render/blocks/end
+
+execute \
+if score @s cf_coltype matches 8 \
+if score @s cf_block_light matches 1 \
+run function color_field:render/blocks/light
+
+execute \
+if score @s cf_coltype matches 8 \
+if score @s cf_block_nether matches 1 \
+run function color_field:render/blocks/nether
+
+execute \
+if score @s cf_coltype matches 8 \
+if score @s cf_block_ore matches 1 \
+run function color_field:render/blocks/ore
+
+execute \
+if score @s cf_coltype matches 8 \
+if score @s cf_block_soil matches 1 \
+run function color_field:render/blocks/soil
 
 execute \
 if score @s cf_coltype matches 8 \
@@ -18,8 +38,19 @@ run function color_field:render/blocks/stone
 
 execute \
 if score @s cf_coltype matches 8 \
-if score @s cf_block_granite matches 1 \
-run function color_field:render/blocks/grian
+if score @s cf_block_utility matches 1 \
+run function color_field:render/blocks/utility
+
+execute \
+if score @s cf_coltype matches 8 \
+if score @s cf_block_wood matches 1 \
+run function color_field:render/blocks/wood
+
+execute \
+if score @s cf_coltype matches 8 \
+if score @s cf_block_wool matches 1 \
+run function color_field:render/blocks/wool
+
 
 
 #

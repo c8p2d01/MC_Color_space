@@ -1,7 +1,7 @@
-execute as @e[type=interaction,tag=layer_2,tag=yawstep_330] at @s run \
+execute as @e[type=interaction,tag=layer_0,tag=yawstep_330] at @s run \
     summon text_display ^ ^ ^ {\
     Tags:["color_field","color_field_ui"],\
-    text:{"text":"Dirt","color":"dark_gray"},\
+    text:{"text":"Wool","color":"dark_gray"},\
     billboard:"center",\
     brightness:{block:15,sky:15},\
     transformation:{\
@@ -12,4 +12,4 @@ execute as @e[type=interaction,tag=layer_2,tag=yawstep_330] at @s run \
     }\
 }
 
-tag @e[type=interaction,tag=layer_2,tag=yawstep_330,limit=1] add toggle_dirt
+tag @e[type=interaction,tag=layer_0,tag=yawstep_330,limit=1] add toggle_wool

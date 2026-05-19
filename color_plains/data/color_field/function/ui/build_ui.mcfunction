@@ -44,6 +44,12 @@ function color_field:ui/elements/set_color_density_high
 function color_field:ui/elements/set_color_density_mid
 function color_field:ui/elements/set_color_density_low
 
+function color_field:ui/elements/_end
+function color_field:ui/elements/_light
+function color_field:ui/elements/_nether
+function color_field:ui/elements/_ore
+function color_field:ui/elements/_soil
 function color_field:ui/elements/_stone
-function color_field:ui/elements/_dirt
-function color_field:ui/elements/_granite
+function color_field:ui/elements/_utility
+function color_field:ui/elements/_wood
+function color_field:ui/elements/_wool
