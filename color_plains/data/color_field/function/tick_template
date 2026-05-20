@@ -20,4 +20,3 @@ effect give @e[type=block_display,tag=highlighted] glowing 1 0 true
 
 execute as @e[tag=block_shifter] at @p run tp @s @e[type=block_display,sort=nearest,limit=1,distance=..5]
 
-execute as @e[tag=block_shifter] at @s if entity @p[distance=..5,limit=1] run tp @s ~0.0625 ~ ~0.0625

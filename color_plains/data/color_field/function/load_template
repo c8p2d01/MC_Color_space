@@ -13,6 +13,7 @@ execute as @p run function color_field:render/render
 scoreboard objectives add click_wand minecraft.used:minecraft.carrot_on_a_stick
 scoreboard objectives add place_wand minecraft.used:minecraft.carrot_on_a_stick
 
+
 clear @p carrot_on_a_stick[custom_data={color_field:{ui_wand:true}}]
 give @p carrot_on_a_stick[custom_data={color_field:{ui_wand:true}}] 1
 

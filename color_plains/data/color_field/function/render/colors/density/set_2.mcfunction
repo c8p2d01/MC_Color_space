@@ -1,4 +1,4 @@
-execute unless scoreboard players @s cf_coltype matches 0 run scoreboard players set @s cf_density 2
+scoreboard players set @s cf_density 2
 
 function color_field:render/render
 

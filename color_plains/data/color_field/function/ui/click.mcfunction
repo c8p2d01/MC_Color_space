@@ -18,8 +18,6 @@ execute if entity @s[tag=set_density_high] if data entity @s interaction.player 
 execute if entity @s[tag=set_density_mid] if data entity @s interaction.player on target run function color_field:render/colors/density/set_2
 execute if entity @s[tag=set_density_low] if data entity @s interaction.player on target run function color_field:render/colors/density/set_1
 
-execute if entity @s[tag=cf_selector] if data entity @s interaction.player on target run say hello
-
 execute if entity @s[tag=toggle_wood] if data entity @s interaction.player on target run function color_field:ui/logics/_wood
 execute if entity @s[tag=toggle_utility] if data entity @s interaction.player on target run function color_field:ui/logics/_utility
 execute if entity @s[tag=toggle_misc] if data entity @s interaction.player on target run function color_field:ui/logics/_misc

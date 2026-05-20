@@ -320,6 +320,8 @@ def generate_logic(data):
     angle = 330
     shutil.copy2(f"{SCRIPT_DIR}/load_template", f"{SCRIPT_DIR}/load.mcfunction")
     load = open(f"{SCRIPT_DIR}/load.mcfunction", "a+")
+    shutil.copy2(f"{SCRIPT_DIR}/tick_template", f"{SCRIPT_DIR}/tick.mcfunction")
+    tick = open(f"{SCRIPT_DIR}/tick.mcfunction", "a+")
     shutil.copy2(f"{SCRIPT_DIR}/ui/build_ui_template", f"{SCRIPT_DIR}/ui/build_ui.mcfunction")
     build = open(f"{SCRIPT_DIR}/ui/build_ui.mcfunction", "a+")
     shutil.copy2(f"{SCRIPT_DIR}/ui/click_template", f"{SCRIPT_DIR}/ui/click.mcfunction")
@@ -342,6 +344,11 @@ def generate_logic(data):
         if (layer < 0):
             layer = 4
             angle -= 15
+    render.write(f"execute as @e[tag=color_field_anchor,limit=1] at @s run summon interaction ~ ~ ~ "\
+                 f"{{Tags:[\"color_field\",\"block_shifter\"],width:{CUBE_SIZE / 32}f,"\
+                 f"height:{CUBE_SIZE / 32}f}}")
+    tick.write(f"execute as @e[tag=block_shifter] at @s if entity @p[distance=..5,limit=1] run "\
+                 f"tp @s ~{CUBE_SIZE / 64} ~ ~{CUBE_SIZE / 64}")
     clck.write("\ndata remove entity @s interaction\n")
 
 def load_png_pixel_data(path):
@@ -404,21 +411,28 @@ def find_positions(texture_list):
             pixs = load_png_pixel_data(texture_folder + texture)
             pts = rgb_to_3d_points(pixs, normalize=True, scale=1.0)
             points.append(pts)
+            break
         except Exception as e:
-            print(f"Fehler bei {block_id} mit Textur {texture}: {e}")
+            print(f"{e}")
     if points:
         combined_points = np.concatenate(points, axis=0)
         labels = cluster_points(combined_points)
         unique_labels = np.unique(labels)
+        noise_points = []
         for label in unique_labels:
             if label == -1:
                 continue
             
             cluster_pts = combined_points[labels == label]
-            # if (len(cluster_pts) < len(combined_points) / 4):
-            #     continue
+            if (len(cluster_pts) < len(combined_points) / 4):
+                noise_points.append(cluster_pts)
+                continue
             
             midpoint = np.mean(cluster_pts, axis=0)
+            midpoints.append(midpoint.tolist())
+        if (len(noise_points) > len(combined_points) / 4):
+            all_noise = np.concatenate(noise_points, axis=0)
+            midpoint = np.mean(all_noise, axis=0)
             midpoints.append(midpoint.tolist())
         return (merge_close_midpoints(midpoints))
     return ([])

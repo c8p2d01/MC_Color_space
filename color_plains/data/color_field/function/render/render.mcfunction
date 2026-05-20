@@ -265,3 +265,4 @@ if score @s cf_coltype matches 8 \
 if score @s cf_block_dirt matches 1 \
 run function color_field:render/blocks/dirt
 
+execute as @e[tag=color_field_anchor,limit=1] at @s run summon interaction ~ ~ ~ {Tags:["color_field","block_shifter"],width:0.125f,height:0.125f}
