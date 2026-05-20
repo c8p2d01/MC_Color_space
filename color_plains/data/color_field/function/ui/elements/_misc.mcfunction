@@ -1,0 +1,4 @@
+execute if score @s cf_block_misc matches 1 as @e[type=interaction,tag=layer_2,tag=yawstep_330] at @s run summon text_display ^ ^ ^ {Tags:["color_field","color_field_ui","ui_block_misc"],text:{"text":"misc","color":"green"},billboard:"center",brightness:{block:15,sky:15},transformation:{translation:[0f,0f,0f],left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],scale:[1.0f,1.0f,1.0f]}}
+execute unless score @s cf_block_misc matches 1 as @e[type=interaction,tag=layer_2,tag=yawstep_330] at @s run summon text_display ^ ^ ^ {Tags:["color_field","color_field_ui","ui_block_misc"],text:{"text":"misc","color":"dark_gray"},billboard:"center",brightness:{block:15,sky:15},transformation:{translation:[0f,0f,0f],left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],scale:[1.0f,1.0f,1.0f]}}
+
+tag @e[type=interaction,tag=layer_2,tag=yawstep_330,limit=1] add toggle_misc

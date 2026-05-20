@@ -21,7 +21,7 @@ install:
 	@$(PYTHON) -m ensurepip --upgrade || \
 		curl -s https://bootstrap.pypa.io/get-pip.py | $(PYTHON)
 	$(PYTHON) -m pip install --upgrade pip setuptools wheel build \
-		flake8 pydantic pyperclip tqdm numpy Pillow matplotlib pyclustering scipy scikit-learn
+		flake8 pydantic numpy Pillow pyclustering scipy scikit-learn colormath coloraide polars pandas 
 
 textures:
 	git clone -b 26.1.2 https://github.com/PixiGeko/Minecraft-default-assets
@@ -37,7 +37,7 @@ run:
 		echo "Run make install first"; \
 		exit 1; \
 	fi
-	$(PYTHON) $(ARGS)
+	$(PYTHON) data/color_field/function/main.py
 
 debug:
 	$(PYTHON) -m pdb $(ARGS)

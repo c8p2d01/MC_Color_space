@@ -45,21 +45,3 @@ function color_field:ui/elements/set_color_density_mid
 function color_field:ui/elements/set_color_density_low
 
 
-function color_field:ui/elements/_wood
-function color_field:ui/elements/_utility
-function color_field:ui/elements/_misc
-function color_field:ui/elements/_ore
-function color_field:ui/elements/_stone
-function color_field:ui/elements/_crops
-function color_field:ui/elements/_wool
-function color_field:ui/elements/_light
-function color_field:ui/elements/_concrete
-function color_field:ui/elements/_concrete_powder
-function color_field:ui/elements/_terracotta
-function color_field:ui/elements/_glass
-function color_field:ui/elements/_ice
-function color_field:ui/elements/_block
-function color_field:ui/elements/_coral
-function color_field:ui/elements/_sculk
-function color_field:ui/elements/_creative
-function color_field:ui/elements/_dirt
