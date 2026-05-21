@@ -32,6 +32,7 @@ function color_field:ui/elements/toggle_feedback
 function color_field:ui/elements/place_anchor
 function color_field:ui/elements/toggle_render_anchor
 function color_field:ui/elements/toggle_render_box
+function color_field:ui/elements/toggle_render_type
 function color_field:ui/elements/set_rgb
 function color_field:ui/elements/set_hsl
 function color_field:ui/elements/set_lab

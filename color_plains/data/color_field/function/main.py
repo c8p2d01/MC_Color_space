@@ -1,3 +1,6 @@
+import variables as var
+import color_conversion as colmath
+import mc_writer
 import csv
 import numpy as np
 import pandas as pd
@@ -6,84 +9,15 @@ import shutil
 from PIL import Image
 from pathlib import Path
 from collections import defaultdict
+
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+
 try:
     from pyclustering.cluster.clique import clique
     CLIQUE_AVAILABLE = True
 except ImportError:
     CLIQUE_AVAILABLE = False
-
-# Gets the directory where the current script lives
-SCRIPT_DIR = Path(__file__).resolve().parent
-CUBE_SIZE = 4
-RESOLUTION = 16
-HALF = CUBE_SIZE / 2
-texture_folder = f""
-
-def create_ui_element(group, pos_layer, pos_angle):
-    return (
-        f"execute if score @s cf_block_{group} matches 1 as @e[type=interaction,tag=layer_{pos_layer},tag=yawstep_{pos_angle}] at @s run "\
-        f"summon text_display ^ ^ ^ {{"\
-        f"Tags:[\"color_field\",\"color_field_ui\",\"ui_block_{group}\"],"\
-        f"text:{{\"text\":\"{group}\",\"color\":\"green\"}},"\
-        f"billboard:\"center\","\
-        f"brightness:{{block:15,sky:15}},"\
-        f"transformation:{{"\
-            f"translation:[0f,0f,0f],"\
-            f"left_rotation:[0f,0f,0f,1f],"\
-            f"right_rotation:[0f,0f,0f,1f],"\
-            f"scale:[1.0f,1.0f,1.0f]"\
-        f"}}"\
-        f"}}\n"\
-        f"execute unless score @s cf_block_{group} matches 1 as @e[type=interaction,tag=layer_{pos_layer},tag=yawstep_{pos_angle}] at @s run "\
-            f"summon text_display ^ ^ ^ {{"\
-            f"Tags:[\"color_field\",\"color_field_ui\",\"ui_block_{group}\"],"\
-            f"text:{{\"text\":\"{group}\",\"color\":\"dark_gray\"}},"\
-            f"billboard:\"center\","\
-            f"brightness:{{block:15,sky:15}},"\
-            f"transformation:{{"\
-                f"translation:[0f,0f,0f],"\
-                f"left_rotation:[0f,0f,0f,1f],"\
-                f"right_rotation:[0f,0f,0f,1f],"\
-                f"scale:[1.0f,1.0f,1.0f]"\
-            f"}}"\
-        f"}}\n\n"\
-        f"tag @e[type=interaction,tag=layer_{pos_layer},tag=yawstep_{pos_angle},limit=1] add toggle_{group}"
-    )
-
-def create_summon_string(x, y, z, block, group, scale_divisor=32):
-    return (\
-        f"execute as @e[tag=color_field_anchor,limit=1] at @s run summon block_display "\
-        f"~{(x * CUBE_SIZE - CUBE_SIZE / 2):.4f} ~{(y * CUBE_SIZE - CUBE_SIZE / 2):.4f} ~{(z * CUBE_SIZE - CUBE_SIZE / 2):.4f} {{"\
-        f"Tags:[\"color_field\",\"color_field_block\",\"render_{group}\"],"\
-        f"block_state:{{Name:\"{block}\"}},"\
-        f"brightness:{{block:15,sky:15}},"\
-        f"transformation:{{"\
-        f"translation:[0f,0f,0f],"\
-        f"left_rotation:[0f,0f,0f,1f],"\
-        f"right_rotation:[0f,0f,0f,1f],"\
-        f"scale:[{CUBE_SIZE / scale_divisor}f,{CUBE_SIZE / scale_divisor}f,{CUBE_SIZE / scale_divisor}f]"\
-        f"}}"\
-        f"}}\n"\
-    )
-
-def create_ui_logic(group):
-    return (
-        f"execute if score @s cf_block_{group} matches 1 run scoreboard players set @s cf_block_{group} 2\n"\
-        f"execute unless score @s cf_block_{group} matches 1..2 run scoreboard players set @s cf_block_{group} 1\n"\
-        f"execute if score @s cf_block_{group} matches 2 run scoreboard players set @s cf_block_{group} 0\n"\
-        f"# kill @e[type=text_display,tag=\"ui_block_{group}\"]\n"\
-        f"# function color_field:ui/elements/_{group}\n"\
-        f"function color_field:render/blocks/set"\
-    )
-
-def create_render_logic(group):
-    return (\
-        f"# {group}\n"\
-        f"execute \\\n"\
-        f"if score @s cf_coltype matches 8 \\\n"\
-        f"if score @s cf_block_{group} matches 1 \\\n"\
-        f"run function color_field:render/blocks/{group}\n\n"\
-    )
 
 def list_textures():
     SUFFIXES = {
@@ -228,7 +162,7 @@ def list_textures():
             return ("bamboo")
         return (joined)
     
-    files = [f.name for f in Path(texture_folder).iterdir() if f.is_file()]
+    files = [f.name for f in Path(var.texture_folder).iterdir() if f.is_file()]
     names = []
 
     for f in files:
@@ -251,13 +185,13 @@ def list_textures():
     return dict(blocks)
 
 def test_summon(blocks):
-    f = open(str(SCRIPT_DIR) + "/test_summon_all.mcfunction", "w+")
+    f = open(str(var.SCRIPT_DIR) + "/test_summon_all.mcfunction", "w+")
     index = 0
     items = list(blocks.keys())
     for x in range(16):
         for z in range(20):
             if (index < len(items)):
-                f.write(create_summon_string(x * CUBE_SIZE, 0, z * CUBE_SIZE, "minecraft:" + items[index], "all_blocks", CUBE_SIZE))
+                f.write(mc_writer.create_summon_string(x * var.CUBE_SIZE, 0, z * var.CUBE_SIZE, "minecraft:" + items[index], "all_blocks", var.CUBE_SIZE))
             index += 1
 
 def classify_blocks(row):
@@ -318,67 +252,118 @@ def generate_logic(data):
     groups = data["category"].unique()
     layer = 4
     angle = 330
-    shutil.copy2(f"{SCRIPT_DIR}/load_template", f"{SCRIPT_DIR}/load.mcfunction")
-    load = open(f"{SCRIPT_DIR}/load.mcfunction", "a+")
-    shutil.copy2(f"{SCRIPT_DIR}/tick_template", f"{SCRIPT_DIR}/tick.mcfunction")
-    tick = open(f"{SCRIPT_DIR}/tick.mcfunction", "a+")
-    shutil.copy2(f"{SCRIPT_DIR}/ui/build_ui_template", f"{SCRIPT_DIR}/ui/build_ui.mcfunction")
-    build = open(f"{SCRIPT_DIR}/ui/build_ui.mcfunction", "a+")
-    shutil.copy2(f"{SCRIPT_DIR}/ui/click_template", f"{SCRIPT_DIR}/ui/click.mcfunction")
-    clck = open(f"{SCRIPT_DIR}/ui/click.mcfunction", "a+")
-    shutil.copy2(f"{SCRIPT_DIR}/render/render_template", f"{SCRIPT_DIR}/render/render.mcfunction")
-    render = open(f"{SCRIPT_DIR}/render/render.mcfunction", "a+")
+    shutil.copy2(f"{var.SCRIPT_DIR}/load_template", f"{var.SCRIPT_DIR}/load.mcfunction")
+    load = open(f"{var.SCRIPT_DIR}/load.mcfunction", "a+")
+    shutil.copy2(f"{var.SCRIPT_DIR}/tick_template", f"{var.SCRIPT_DIR}/tick.mcfunction")
+    tick = open(f"{var.SCRIPT_DIR}/tick.mcfunction", "a+")
+    shutil.copy2(f"{var.SCRIPT_DIR}/ui/build_ui_template", f"{var.SCRIPT_DIR}/ui/build_ui.mcfunction")
+    build = open(f"{var.SCRIPT_DIR}/ui/build_ui.mcfunction", "a+")
+    shutil.copy2(f"{var.SCRIPT_DIR}/ui/click_template", f"{var.SCRIPT_DIR}/ui/click.mcfunction")
+    clck = open(f"{var.SCRIPT_DIR}/ui/click.mcfunction", "a+")
+    shutil.copy2(f"{var.SCRIPT_DIR}/render/render_template", f"{var.SCRIPT_DIR}/render/render.mcfunction")
+    render = open(f"{var.SCRIPT_DIR}/render/render.mcfunction", "a+")
     for g in groups:
         load.write(f"scoreboard objectives add cf_block_{g} dummy\n")
         load.write(f"execute as @p run scoreboard players set @s cf_block_{g} 0\n")
         clck.write(f"execute if entity @s[tag=toggle_{g}] if data entity @s interaction.player on target run function color_field:ui/logics/_{g}\n")
         build.write(f"function color_field:ui/elements/_{g}\n")
-        render.write(create_render_logic(g))
-        e = open(f"{SCRIPT_DIR}/ui/elements/_{g}.mcfunction", "w+")
-        e.write(create_ui_element(g, layer, angle))
+        render.write(mc_writer.create_render_logic(g))
+        e = open(f"{var.SCRIPT_DIR}/ui/elements/_{g}.mcfunction", "w+")
+        e.write(mc_writer.create_ui_element(g, layer, angle))
         e.close()
-        f = open(f"{SCRIPT_DIR}/ui/logics/_{g}.mcfunction", "w+")
-        f.write(create_ui_logic(g))
+        f = open(f"{var.SCRIPT_DIR}/ui/logics/_{g}.mcfunction", "w+")
+        f.write(mc_writer.create_ui_logic(g))
         f.close()
         layer -= 1
         if (layer < 0):
             layer = 4
             angle -= 15
     render.write(f"execute as @e[tag=color_field_anchor,limit=1] at @s run summon interaction ~ ~ ~ "\
-                 f"{{Tags:[\"color_field\",\"block_shifter\"],width:{CUBE_SIZE / 32}f,"\
-                 f"height:{CUBE_SIZE / 32}f}}")
+                 f"{{Tags:[\"color_field\",\"block_shifter\"],width:{var.CUBE_SIZE / 32}f,"\
+                 f"height:{var.CUBE_SIZE / 32}f}}\n"\
+                 f"\n"\
+                 f"execute store result score #count cf_counter_node if score @s cf_coltype matches 0..7 run execute if entity @e[type=text_display,tag=color_field_node]\n"\
+                 f"\n"\
+                 f"execute store result score #count cf_counter_node if score @s cf_coltype matches 8..15 run execute if entity @e[type=block_display,tag=color_field_block]\n"\
+                 f"\n"\
+                 f"execute if score @s cf_feedback matches 1 run tellraw @a [{{\"text\":\"[ColorField] \",\"color\":\"dark_aqua\",\"bold\":true}},"\
+                 f"{{\"text\":\"Number of active Nodes\",\"color\":\"green\"}},{{\"score\":{{\"name\":\"#count\",\"objective\":\"cf_counter_node\"}},\"color\":\"gold\",\"bold\":true}}]\n"
+                )
+
     tick.write(f"execute as @e[tag=block_shifter] at @s if entity @p[distance=..5,limit=1] run "\
-                 f"tp @s ~{CUBE_SIZE / 64} ~ ~{CUBE_SIZE / 64}")
+                 f"tp @s ~{var.CUBE_SIZE / 64} ~ ~{var.CUBE_SIZE / 64}")
     clck.write("\ndata remove entity @s interaction\n")
 
 def load_png_pixel_data(path):
     image = Image.open(path).convert('RGB')
-    pixels = np.array(image)
-    return pixels
+    return np.array(image)
 
 def rgb_to_3d_points(pixel_array, normalize=True, scale=1.0):
     if pixel_array.ndim != 3 or pixel_array.shape[2] != 3:
         raise ValueError('Expected RGB pixel array with shape (H, W, 3)')
-    height, width, _ = pixel_array.shape
     points = pixel_array.reshape((-1, 3)).astype(np.float64)
     if normalize:
         points /= 255.0
     points *= scale
     return points
 
-def cluster_points(points, **kwargs):
-    
-    if not CLIQUE_AVAILABLE:
-        raise ImportError('pyclustering library is not installed. Install with: pip install pyclustering')
-    intervals = kwargs.get('intervals', 5)  
-    density_threshold = kwargs.get('density_threshold', 5)
-    model = clique(points, intervals, density_threshold)
-    model.process()
-    clusters = model.get_clusters()
-    labels = np.full(len(points), -1, dtype=int)
-    for cluster_id, cluster_indices in enumerate(clusters):
-        labels[cluster_indices] = cluster_id
-    return labels
+def estimate_k(points, k_min=2, k_max=12):
+    unique_point_count = len(np.unique(points, axis=0))
+
+    k_max = min(k_max, unique_point_count)
+
+    if k_max < k_min:
+        return k_max
+
+    best_k = k_min
+    best_score = -1
+
+    for k in range(k_min, k_max + 1):
+        model = KMeans(n_clusters=k, n_init='auto', random_state=42)
+        labels = model.fit_predict(points)
+
+        if len(np.unique(labels)) < 2:
+            continue
+
+        score = silhouette_score(points, labels)
+
+        if score > best_score:
+            best_score = score
+            best_k = k
+
+    return best_k
+
+def cluster_points(points, min_cluster_size=10, k=None):
+    unique_point_count = len(np.unique(points, axis=0))
+    if k is None:
+        k = estimate_k(points)
+    k = min(k, unique_point_count)
+
+    model = KMeans(n_clusters=k, n_init='auto', random_state=42)
+    labels = model.fit_predict(points)
+
+    unique_labels, counts = np.unique(labels, return_counts=True)
+
+    valid_clusters = unique_labels[counts >= min_cluster_size]
+
+    mask = np.isin(labels, valid_clusters)
+
+    filtered_points = points[mask]
+    filtered_labels = labels[mask]
+
+    return filtered_points, filtered_labels, k
+
+def compute_cluster_means(points, labels):
+    unique_labels = np.unique(labels)
+
+    means = []
+
+    for label in unique_labels:
+        cluster_points = points[labels == label]
+        mean_point = cluster_points.mean(axis=0)
+        means.append(mean_point)
+
+    return np.array(means)
 
 def merge_close_midpoints(midpoints, threshold=0.1):
     if len(midpoints) <= 1:
@@ -408,86 +393,41 @@ def find_positions(texture_list):
     points = []
     for texture in texture_list:
         try:
-            pixs = load_png_pixel_data(texture_folder + texture)
+            pixs = load_png_pixel_data(var.texture_folder + texture)
             pts = rgb_to_3d_points(pixs, normalize=True, scale=1.0)
             points.append(pts)
-            break
+          #  break  this is effectively only checking the first texture
         except Exception as e:
-            print(f"{e}")
+            print(f"errrrrrrr{e}")
     if points:
         combined_points = np.concatenate(points, axis=0)
-        labels = cluster_points(combined_points)
+        filtered_points, labels, k = cluster_points(
+            combined_points,
+            min_cluster_size=25
+        )
         unique_labels = np.unique(labels)
-        noise_points = []
-        for label in unique_labels:
-            if label == -1:
-                continue
-            
-            cluster_pts = combined_points[labels == label]
-            if (len(cluster_pts) < len(combined_points) / 4):
-                noise_points.append(cluster_pts)
-                continue
-            
-            midpoint = np.mean(cluster_pts, axis=0)
-            midpoints.append(midpoint.tolist())
-        if (len(noise_points) > len(combined_points) / 4):
-            all_noise = np.concatenate(noise_points, axis=0)
-            midpoint = np.mean(all_noise, axis=0)
-            midpoints.append(midpoint.tolist())
+        midpoints = compute_cluster_means(filtered_points, labels)
         return (merge_close_midpoints(midpoints))
     return ([])
 
-def iterate_textures():
-    input_file = "full_blocks.csv"
-    output_file = "full_blocks_rgb_positions.csv"
-
-    # Name der neuen Spalte
-    coordinate_column = "coordinates"
-    try:
-        with open(str(SCRIPT_DIR) + "/" + input_file, mode="r+", encoding="utf-8") as infile:
-            reader = csv.reader(infile, delimiter=";", quotechar='"')
-            rows = list(reader)
-
-
-            sets = set()
-            for row in rows[1:]:
-                if len(row) < 3:
-                    continue
-
-                block_id = row[1]
-                texture_list = row[2].split()
-
-                result = find_positions(texture_list)
-
-                row.append(result)
-                sets.add(row[0])
-            
-            print(sets)
-
-            files = {}
-            for s in sets:
-                f = open(f"{SCRIPT_DIR}/summoners/{s.lower()}.mcfunction", "w+")
-                files[s] = f
-
-            for row in rows[1:]:
-                if len(row) < 3:
-                    continue
-                for p in row[3]:
-                    files[row[0]].write(create_summon_string(p[0], p[1], p[2], row[1], row[0]))
-
-            
-            
-        print(f"Erfolgreich! Die neue Datei wurde als '{output_file}' gespeichert.")
-
-    except Exception as e:
-        print(f"Fehler bei {e}")
-
 def generate_summons(data):
     groups = data["category"].unique()
-    files = {}
+    rgb_files = {}
+    hsl_files = {}
+    lab_files = {}
+    oklab_files = {}
+    oklch_files = {}
     for g in groups:
-        f = open(f"{SCRIPT_DIR}/render/blocks/{g}.mcfunction", "w+")
-        files[g] = f
+        r = open(f"{var.SCRIPT_DIR}/render/blocks/rgb/{g}.mcfunction", "w+")
+        rgb_files[g] = r
+        h = open(f"{var.SCRIPT_DIR}/render/blocks/hsl/{g}.mcfunction", "w+")
+        hsl_files[g] = h
+        l = open(f"{var.SCRIPT_DIR}/render/blocks/lab/{g}.mcfunction", "w+")
+        lab_files[g] = l
+        a = open(f"{var.SCRIPT_DIR}/render/blocks/oklab/{g}.mcfunction", "w+")
+        oklab_files[g] = a
+        c = open(f"{var.SCRIPT_DIR}/render/blocks/oklch/{g}.mcfunction", "w+")
+        oklch_files[g] = c
 
     for index, row in data.iterrows():
         block_id = row['Key']
@@ -498,17 +438,42 @@ def generate_summons(data):
         display_positions = find_positions(texture_list)
 
         for p in display_positions:
-             files[group].write(create_summon_string(p[0], p[1], p[2], block_id, group))
+             x,y,z = colmath.rgb_to_rgb(p[0], p[1], p[2])
+             rgb_files[group].write(mc_writer.create_summon_string(x, y, z, block_id, group))
+             x,y,z = colmath.rgb_to_hsl(p[0], p[1], p[2])
+             hsl_files[group].write(mc_writer.create_summon_string(x, y, z, block_id, group))
+             x,y,z = colmath.rgb_to_lab(p[0], p[1], p[2])
+             lab_files[group].write(mc_writer.create_summon_string(x, y, z, block_id, group))
+             x,y,z = colmath.rgb_to_oklab(p[0], p[1], p[2])
+             oklab_files[group].write(mc_writer.create_summon_string(x, y, z, block_id, group))
+             x,y,z = colmath.rgb_to_oklch(p[0], p[1], p[2])
+             oklch_files[group].write(mc_writer.create_summon_string(x, y, z, block_id, group))
+    
+    for g in groups:
+        rgb_files[g].close()
+        hsl_files[g].close()
+        lab_files[g].close()
+        oklab_files[g].close()
+        oklch_files[g].close()
 
 
 
 if __name__ == "__main__":
     # iterate_textures()
-    blocks =  list_textures()
+    try:
+        blocks =  list_textures()
+    except Exception as e:
+        print(f"Error: {e}\nprobably failed to load textures.\nplease provide the path to the texture folder in variables.py")
+
     # test_summon(blocks)
+
     data = frame_blocks(blocks)
 
     generate_logic(data)
+    
+    # try:
     generate_summons(data)
+    # except Exception as e:
+        # print(f"Error: {e}\n")
 
     pass

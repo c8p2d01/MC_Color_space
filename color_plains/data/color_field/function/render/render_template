@@ -4,10 +4,6 @@ function color_field:render/clear
 
 execute if score @s cf_feedback matches 1 run tellraw @s {"text":"re rendered","color":"green"}
 
-execute store result score #count cf_counter_node run execute if entity @e[type=text_display,tag=color_field_node]
-
-execute if score @s cf_feedback matches 1 run tellraw @a [{"text":"[ColorField] ","color":"dark_aqua","bold":true},{"text":"Number of active Nodes","color":"green"},{"score":{"name":"#count","objective":"cf_counter_node"},"color":"gold","bold":true}]
-
 #
 #             RGB
 #
