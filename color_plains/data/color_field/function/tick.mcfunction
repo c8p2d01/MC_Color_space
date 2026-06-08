@@ -1,0 +1,23 @@
+# future:
+# - anchor follow
+# - display updates
+# - color field rendering loop
+
+# UI trigger
+execute as @a[scores={click_wand=1..}] if items entity @s weapon.mainhand carrot_on_a_stick[custom_data={color_field:{ui_wand:true}}] run function color_field:ui/build_ui
+# UI turn off triggger
+execute as @e[tag=color_field_has_ui] at @s unless entity @e[type=marker,tag=ui_stillness_tracker,distance=..0.1] run function color_field:ui/clean_ui
+# UI interactivity debug
+execute as @e[type=interaction,tag=sphere_marker] if data entity @s interaction.player run function color_field:ui/click
+# placement trigger
+execute as @a[scores={click_wand=1..}] if items entity @s weapon.mainhand carrot_on_a_stick[custom_data={color_field:{render_wand:true}}] run function color_field:render/functions/place_anchor
+
+execute as @e[type=interaction,tag=block_shifter] if data entity @s interaction.player run function color_field:render/functions/pick_handler
+
+tag @e[type=block_display,tag=color_field_block] remove highlighted
+execute at @p run tag @e[type=block_display,tag=color_field_block,sort=nearest,limit=1,distance=..5] add highlighted
+effect give @e[type=block_display,tag=highlighted] glowing 1 0 true
+
+execute as @e[tag=block_shifter] at @p run tp @s @e[type=block_display,sort=nearest,limit=1,distance=..5]
+
+execute as @e[tag=block_shifter] at @s if entity @p[distance=..5,limit=1] run tp @s ~0.1875 ~ ~0.1875
