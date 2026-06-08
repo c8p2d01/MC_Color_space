@@ -1,1 +1,0 @@
-$give @s $(current_block) 1
