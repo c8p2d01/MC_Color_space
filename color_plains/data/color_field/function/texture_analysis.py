@@ -1,13 +1,9 @@
-import variables as var
+import MC_Color_space.color_plains.data.color_field.function.variables as var
 import numpy as np
 from PIL import Image
 
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
-
-def load_png_pixel_data(path):
-    image = Image.open(path).convert('RGB')
-    return np.array(image)
 
 def rgb_to_3d_points(pixel_array, normalize=True, scale=1.0):
     if pixel_array.ndim != 3 or pixel_array.shape[2] != 3:
@@ -16,6 +12,20 @@ def rgb_to_3d_points(pixel_array, normalize=True, scale=1.0):
     if normalize:
         points /= 255.0
     points *= scale
+    return points
+
+def rgba_list_to_3d_points(rgba_list, normalize=True, scale=1.0):
+    rgba_array = np.array(rgba_list, dtype=np.float64)
+    
+    if rgba_array.ndim != 2 or rgba_array.shape[1] != 4:
+        raise ValueError('expected an array of rgba arrays')
+    mask = rgba_array[:, 3] > 0
+    visible_rgba = rgba_array[mask]
+    points = visible_rgba[:, :3]
+    if normalize:
+        points /= 255.0
+    points *= scale
+    
     return points
 
 #
@@ -103,17 +113,13 @@ def merge_close_midpoints(midpoints, threshold=0.1):
         
     return merged
 
-def find_positions(texture_list):
+def find_positions(pixels):
     midpoints = []
     points = []
-    for texture in texture_list:
-        try:
-            pixs = load_png_pixel_data(var.texture_folder + "block/" + texture)
-            pts = rgb_to_3d_points(pixs, normalize=True, scale=1.0)
-            points.append(pts)
-          #  break # if break here then this is effectively only checking the first texture
-        except Exception as e:
-            print(f"eeee{e}\t>{texture}<")
+        
+    pts = rgb_to_3d_points(pixels, normalize=True, scale=1.0)
+    points.append(pts)
+
     if points:
         combined_points = np.concatenate(points, axis=0)
         filtered_points, labels, k = cluster_points(

@@ -1,17 +1,17 @@
-import variables as var
-import color_conversion as colmath
-import mc_writer
-from datapack_logic import generate_logic
-import texture_analysis as tsys
-import texture_classification as tclass
+import MC_Color_space.color_plains.data.color_field.function.variables as var
+import MC_Color_space.color_plains.data.color_field.function.color_conversion as colmath
+import MC_Color_space.color_plains.data.color_field.function.mc_writer as mc_writer
+from MC_Color_space.color_plains.data.color_field.function.datapack_logic import generate_logic
+import MC_Color_space.color_plains.data.color_field.function.texture_analysis as tsys
+import MC_Color_space.color_plains.data.color_field.function.texture_classification as tclass
 import numpy as np
 import pandas as pd
 import ast
 from PIL import Image
 from pathlib import Path
 from collections import defaultdict
-from block_class import Block
-from block_class import BlockVariant
+from MC_Color_space.color_plains.data.color_field.function.block_class import Block
+from MC_Color_space.color_plains.data.color_field.function.block_class import BlockVariant
 
 try:
     from pyclustering.cluster.clique import clique
@@ -52,6 +52,25 @@ def test_variant_summon(blocks: list[Block]):
                     x = 0
                     z  += 2
     file.close()
+
+def test_group_summon(blocks: list[Block], groups: list[str]):
+    file = open(str(var.SCRIPT_DIR) + "/test_group_summon.mcfunction", "w+")
+    debug = open(str(var.SCRIPT_DIR) + "/info/test_summons", "w+")
+    z = {}
+    for g in groups:
+        z[g] = 0
+    for b in blocks:
+        
+        debug.write(f"{b.id.removesuffix('.json')}\n")
+        x += 2
+        if x >= 80:
+            x = 0
+            z  += 2
+            debug.write("\n")
+    file.close()
+    debug.close()
+
+
 
 def generate_summons(data):
     groups = data["category"].unique()

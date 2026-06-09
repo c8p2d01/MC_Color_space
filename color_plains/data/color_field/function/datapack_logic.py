@@ -1,5 +1,5 @@
-import variables as var
-import mc_writer
+import MC_Color_space.color_plains.data.color_field.function.variables as var
+import MC_Color_space.color_plains.data.color_field.function.mc_writer as mc_writer
 import shutil
 
 def open_from_template(template: str):

@@ -4,9 +4,9 @@ from pathlib import Path
 #   Important Folders
 #
 
-block_state_folder = f""
-model_folder = f""
-texture_folder = f""
+block_state_folder = f"/mnt/c/Users/Clemens/Documents/ColorTheory/Minecraft-default-assets/assets/minecraft/blockstates/"
+model_folder = f"/mnt/c/Users/Clemens/Documents/ColorTheory/Minecraft-default-assets/assets/minecraft/models/"
+texture_folder = f"/mnt/c/Users/Clemens/Documents/ColorTheory/Minecraft-default-assets/assets/minecraft/textures/"
 
 #
 #   Calculation

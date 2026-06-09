@@ -1,10 +1,11 @@
-import variables as var
-import mc_writer
-from block_class import Block
-from block_class import BlockVariant
+import MC_Color_space.color_plains.data.color_field.function.variables as var
+import MC_Color_space.color_plains.data.color_field.function.mc_writer as mc_writer
+from MC_Color_space.color_plains.data.color_field.function.block_class import Block
+from MC_Color_space.color_plains.data.color_field.function.block_class import BlockVariant
 import json
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 import ast
 from PIL import Image
 from pathlib import Path
@@ -18,26 +19,6 @@ try:
     CLIQUE_AVAILABLE = True
 except ImportError:
     CLIQUE_AVAILABLE = False
-
-def list_textures():
-    suffixes = defaultdict(list)
-    def get_base(name):
-        name = trim_filetype(name)
-        parts = name.split("_")
-        while len(parts) > 0:
-            suffixes[parts[-1]] = parts[0]
-            parts.pop()
-        return (name)
-
-    files = [f.name for f in Path(var.model_folder).iterdir() if f.is_file()]
-
-    blocks = defaultdict(list)
-
-    for f in files:
-        base = get_base(f)
-
-        blocks[base].append(f + ".png")
-    return dict(blocks)
 
 def trim_filetype(name):
     parts = name.split(".")
@@ -113,38 +94,44 @@ def list_block_models() -> defaultdict[str, list[str]]:
 
     return (key)
 
-def recurse_texture_resolve(block: BlockVariant, model: str):
-    """
-    opens the current model and if it has a parent model that isnt itself → recurse
-    set the fields that the model defines
-    """
+def open_texture(image_path: str) -> np.ndarray:
+    pixels = []
+    if image_path.endswith(".png"):
+        img = Image.open(image_path)
+        img = img.convert("RGBA")
+        pixels = np.array(img).tolist()
+        img.close()
+    return pixels
+
+def recurse_texture_resolve(model: BlockVariant, model_path: str):
+
     try:
-        file = open(model)
-    except Exception:
-        print("opening issue")
-        print(model)
+        with open(model_path, 'r', encoding='utf-8') as file:
+            info = json.load(file)
+    except Exception as e:
+        print(f"opening issue: {model_path} ({e})")
         return
-    info = json.load(file)
-    file.close()
-    name = trim_filetype(model)
+
+    name = trim_filetype(model_path)
     parent = info.get("parent")
     if parent:
         parent = prepend_model_path(parent)
         if parent != name:
-            recurse_texture_resolve(block, f"{parent}.json")
-    textures = info.get("textures")
-    if textures:
-        for k, v in textures.items():
-            if isinstance(v, dict): # glass models are funky
-                if "sprite" in v:
-                    v = v["sprite"]
-            for bk, bv in block.textures.items():
-                if k == bk:
-                    if bv == "":
-                        block.textures[bk] = v
-                elif bv == '#' + k:
-                    block.textures[bk] = v
-    pass
+            recurse_texture_resolve(model, f"{parent}.json")
+
+
+    for field in info:
+        if field not in model.fields or not model.fields[field]:
+            model[field] = info[field]
+        elif isinstance(model[field], dict) and isinstance(info[field], dict):
+            merged_dict = model[field].copy()
+            for k, v in info[field].items():
+                merged_dict[k] = v
+            model[field] = merged_dict
+        elif isinstance(model[field], list) and isinstance(info[field], list):
+            model[field] = info[field]
+        else:
+            model[field] = info[field]
 
 def texture_block_from_model(model: str) -> BlockVariant:
     """
@@ -156,8 +143,67 @@ def texture_block_from_model(model: str) -> BlockVariant:
     block_id = parts[-1]
     result = BlockVariant(block_id)
     recurse_texture_resolve(result, model)
-    for k, v in result.textures.items():
-        result.textures[k] = v
+    all_models_textures = result.fields.get("textures")
+
+    if all_models_textures:
+        for key,value in all_models_textures.items():
+            if isinstance(value, dict):
+                sprite = value.get("sprite")
+                if sprite:
+                    all_models_textures[key] = sprite
+
+        all_parsed = False # Possible endless loop
+        while not all_parsed:
+            all_parsed = True
+            for key,value in all_models_textures.items():
+                if len(value) < 1:
+                    continue
+                if value[0] == '#':
+                    all_parsed = False
+                    for k,v in all_models_textures.items():
+                        if value == '#' + k:
+                            all_models_textures[key] = v
+                else:
+                    result.textures.append(value)
+
+        # for key,value in all_models_textures.items():
+        #     print(f"{key}   {value}")
+        # exit()
+
+    elements = result.fields.get("elements")
+    if elements:
+        for e in elements:
+            faces = e.get("faces")
+            if faces:
+                for v in faces.values():
+                    texture_placeholder = v.get("texture")
+                    texture = result.textures[0]
+                    for identifier,file in all_models_textures.items():
+                        if texture_placeholder == '#' + identifier:
+                            texture = file
+                            break
+                    try:
+                        pix = open_texture(prepend_texture_path(texture))
+                    except Exception as e:
+                        print(e)
+                        print(texture)
+                        print(name)
+                        exit()
+                    uv = v.get("uv")
+                    x1,y1,x2,y2 = 0,0,15,15
+                    if uv:
+                        x1 = int(uv[0])
+                        x2 = int(uv[2])
+                        y1 = int(uv[1])
+                        y2 = int(uv[3])
+                    x = x1
+                    while x < x2:
+                        y = y1
+                        while y < y2:
+                            if pix[x][y][3] > 0:
+                                result.pixels.append(pix[x][y])
+                            y += 1
+                        x += 1
     return result
 
 def block_models() -> list[Block]:
@@ -168,25 +214,11 @@ def block_models() -> list[Block]:
     block_files = list_block_models()
     blocks = []
     
-    for k,v in block_files.items():
+    for k, v in tqdm(block_files.items(), total=len(block_files), desc="model extraction"):
         b = Block(k.removesuffix(".json"))
         for model_file in v:
             model = texture_block_from_model(model_file)
-            if not (model.textures["north"] or model.textures["south"] \
-                or model.textures["west"] or model.textures["east"] \
-                or model.textures["up"] or model.textures["down"] \
-                or model.textures["particle"]):
-                print(f"failed resolving texture for\n{model.block_ids[0]}")
-                continue
-            matching_model = None
-            for existing in b.variants:
-                if model.textures == existing.textures:
-                    matching_model = existing
-                    break
-            if matching_model:
-                matching_model.block_ids.append(model.block_ids[0])
-            else:
-                b.variants.append(model)
+            b.variants.append(model)
         blocks.append(b)
 
     file = open(f"{var.SCRIPT_DIR}/info/all_models_with_unique_texture_lists.txt", "w+")
@@ -194,8 +226,7 @@ def block_models() -> list[Block]:
         file.write(f"{b.id}\n")
         if len(b.variants) > 0:
             for model in b.variants:
-                for i in model.block_ids:
-                    file.write(f"\t{i}\n")
+                file.write(f"\t{model.block_id}\n")
                 file.write(f"\t\t{model.textures}\n")
     file.close()
     return blocks
@@ -262,10 +293,7 @@ def manage_summons(blocks: list[Block]):
     for b in blocks:
         core = b.id
         for m in b.variants:
-            shortest = None
-            for s in m.block_ids:
-                if not shortest or len(s) < len(shortest):
-                    shortest = s
+            shortest = m.block_id
             if shortest == core:
                 m.summons.append(shortest)
                 cmds.write(f"{shortest}\n")
@@ -460,6 +488,13 @@ def filter_blocks(blocks: list[Block]):
 
 
 if __name__ == "__main__":
+
+    # m = texture_block_from_model("/mnt/c/Users/Clemens/Documents/ColorTheory/Minecraft-default-assets/assets/minecraft/models/block/blast_furnace.json")
+
+    # file = open(f"{var.SCRIPT_DIR}/info/combined.json", "w+")
+    # json.dump(m.fields, file)
+    # file.close()
+
     # blocks = block_models()
 
     # manage_summons(blocks)

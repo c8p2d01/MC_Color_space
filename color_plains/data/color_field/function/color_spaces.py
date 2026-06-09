@@ -1,6 +1,6 @@
-import variables as var
-import color_conversion as colmath
-import mc_writer
+import MC_Color_space.color_plains.data.color_field.function.variables as var
+import MC_Color_space.color_plains.data.color_field.function.color_conversion as colmath
+import MC_Color_space.color_plains.data.color_field.function.mc_writer as mc_writer
 import math
 import colorsys
 from colormath.color_objects import LabColor, sRGBColor
