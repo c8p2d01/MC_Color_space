@@ -1,11 +1,18 @@
 import variables as var
 
 class BlockVariant():
-    identifier: str
+    block_ids: list[str]
     textures: dict[str, str]
+    groups: list[str]
+    summons: list[str]
 
     def __init__(self, id):
-        self.identifier = id
+        self.block_ids = []
+        self.groups = []
+        self.textures = {}
+        self.summons = []
+
+        self.block_ids.append(id)
         self.textures = {
             "particle": "",
             "down": "",
@@ -17,10 +24,9 @@ class BlockVariant():
         }
 
 class Block():
-
-    id: str
     textures: list[str]
     variants: list[BlockVariant]
+    id: str
 
     def __init__(self, id):
         self.id = id

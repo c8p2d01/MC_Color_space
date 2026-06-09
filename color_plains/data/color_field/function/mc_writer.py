@@ -7,52 +7,58 @@ def char_replace(s, c='_', n='\\n'):
 
 def create_summon_string_text(x, y, z, r, g, b, d, type):
     return (\
-        f"execute as @e[tag=color_field_anchor,limit=1] at @s run summon text_display "\
-        f"~{(x + var.HALF):.4f} ~{(y + var.HALF):.4f} ~{(z + var.HALF):.4f} {{"\
-        f"Tags:[\"color_field\",\"color_field_node\",\"render_{type}\",\"density_{d}\"],"\
-        f"text:{{\"text\":\"⬤\",\"color\":\"#{int(r % 256):02x}{int(g % 256):02x}{int(b % 256):02x}\"}},"\
-        f"background:0,"\
-        f"brightness:{{block:15,sky:15}},"\
-        f"billboard:\"center\","\
-        f"transformation:{{"\
-        f"translation:[0f,0f,0f],"\
-        f"left_rotation:[0f,0f,0f,1f],"\
-        f"right_rotation:[0f,0f,0f,1f],"\
-        f"scale:[{var.CUBE_SIZE / 4}f,{var.CUBE_SIZE / 4}f,{var.CUBE_SIZE / 4}f]"\
-        f"}}"\
-        f"}}\n"\
+        f'execute as @e[tag=color_field_anchor,limit=1] at @s run summon text_display '\
+        f'~{(x + var.HALF):.4f} ~{(y + var.HALF):.4f} ~{(z + var.HALF):.4f} {{'\
+        f'Tags:["color_field","color_field_node","render_{type}","density_{d}"],'\
+        f'text:{{"text":"⬤","color":"#{int(r % 256):02x}{int(g % 256):02x}{int(b % 256):02x}"}},'\
+        f'background:0,'\
+        f'billboard:"center",'\
+        f'transformation:{{'\
+        f'translation:[0f,0f,0f],'\
+        f'left_rotation:[0f,0f,0f,1f],'\
+        f'right_rotation:[0f,0f,0f,1f],'\
+        f'scale:[{var.CUBE_SIZE / 4}f,{var.CUBE_SIZE / 4}f,{var.CUBE_SIZE / 4}f]'\
+        f'}}'\
+        f'}}\n'\
     )
 
-def create_summon_string_block(x, y, z, block, group, scale_divisor=32):
-    return (\
-        f"execute as @e[tag=color_field_anchor,limit=1] at @s run summon block_display "\
-        f"~{(x + var.HALF):.4f} ~{(y + var.HALF):.4f} ~{(z + var.HALF):.4f} {{"\
-        f"Tags:[\"color_field\",\"color_field_block\",\"render_{group}\"],"\
-        f"block_state:{{Name:\"{block}\"}},"\
-        f"brightness:{{block:15,sky:15}},"\
-        f"transformation:{{"\
-        f"translation:[0f,0f,0f],"\
-        f"left_rotation:[0f,0f,0f,1f],"\
-        f"right_rotation:[0f,0f,0f,1f],"\
-        f"scale:[{var.CUBE_SIZE / scale_divisor}f,{var.CUBE_SIZE / scale_divisor}f,{var.CUBE_SIZE / scale_divisor}f]"\
-        f"}}"\
-        f"}}\n"\
+def create_summon_string_block(x, y, z, block, group, scale_divisor=32, properties="", default_tags='"color_field","color_field_block",'):
+    return (
+        f'execute as @e[tag=color_field_anchor,limit=1] at @s run summon block_display '
+        f'~{(x + var.HALF):.4f} ~{(y + var.HALF):.4f} ~{(z + var.HALF):.4f} {{'
+        f'Tags:[{default_tags}"render_{group}"],'
+        f'block_state:{{'
+        f'Name:"{block}"'
+        + ( f',Properties:{{'
+            f'{properties}'
+            f'}}'
+        if properties != "" else "")
+        + f'}}'
+        + ( f',transformation:{{'
+            f'translation:[0f,0f,0f],'
+            f'left_rotation:[0f,0f,0f,1f],'
+            f'right_rotation:[0f,0f,0f,1f],'
+            f'scale:[{var.CUBE_SIZE / scale_divisor}f,{var.CUBE_SIZE / scale_divisor}f,{var.CUBE_SIZE / scale_divisor}f]'
+            f'}}'
+        if scale_divisor != var.CUBE_SIZE else "")
+        + f'}}\n'
     )
+
+
 
 def render_append_interaction(render_file):
     """this element needs to be summoned last upon rendering"""
-
     render_file.write(\
-        f"execute as @e[tag=color_field_anchor,limit=1] at @s run summon interaction ~ ~ ~ "\
-        f"{{Tags:[\"color_field\",\"block_shifter\"],width:{var.CUBE_SIZE / 32}f,"\
-        f"height:{var.CUBE_SIZE / 32}f}}\n"\
-        f"\n"\
-        f"execute store result score #count cf_counter_node if score @s cf_coltype matches 0..7 run execute if entity @e[type=text_display,tag=color_field_node]\n"\
-        f"\n"\
-        f"execute store result score #count cf_counter_node if score @s cf_coltype matches 8..15 run execute if entity @e[type=block_display,tag=color_field_block]\n"\
-        f"\n"\
-        f"execute if score @s cf_feedback matches 1 run tellraw @a [{{\"text\":\"[ColorField] \",\"color\":\"dark_aqua\",\"bold\":true}},"\
-        f"{{\"text\":\"Number of active Nodes\",\"color\":\"green\"}},{{\"score\":{{\"name\":\"#count\",\"objective\":\"cf_counter_node\"}},\"color\":\"gold\",\"bold\":true}}]\n"
+        f'execute as @e[tag=color_field_anchor,limit=1] at @s run summon interaction ~ ~ ~ '\
+        f'{{Tags:["color_field","block_shifter"],width:{var.CUBE_SIZE / 32}f,'\
+        f'height:{var.CUBE_SIZE / 32}f}}\n'\
+        f'\n'\
+        f'execute store result score #count cf_counter_node if score @s cf_coltype matches 0..7 run execute if entity @e[type=text_display,tag=color_field_node]\n'\
+        f'\n'\
+        f'execute store result score #count cf_counter_node if score @s cf_coltype matches 8..15 run execute if entity @e[type=block_display,tag=color_field_block]\n'\
+        f'\n'\
+        f'execute if score @s cf_feedback matches 1 run tellraw @a [{{"text":"[ColorField] ","color":"dark_aqua","bold":true}},'\
+        f'{{"text":"Number of active Nodes","color":"green"}},{{"score":{{"name":"#count","objective":"cf_counter_node"}},"color":"gold","bold":true}}]'\
     )
 
 def create_ui_markers(file):
@@ -69,73 +75,84 @@ def create_ui_markers(file):
 def create_ui_element(file, group, pos_layer, pos_angle):
     new_element = open(file, "w+")
     new_element.write(
-        f"execute if score @s cf_block_{group} matches 1 as @e[type=interaction,tag=layer_{pos_layer},tag=yawstep_{pos_angle}] at @s run "\
-        f"summon text_display ^ ^ ^ {{"\
-        f"Tags:[\"color_field\",\"color_field_ui\",\"ui_block_{group}\"],"\
-        f"text:{{\"text\":\"{char_replace(group)}\",\"color\":\"green\"}},"\
-        f"billboard:\"center\","\
-        f"brightness:{{block:15,sky:15}},"\
-        f"transformation:{{"\
-            f"translation:[0f,0f,0f],"\
-            f"left_rotation:[0f,0f,0f,1f],"\
-            f"right_rotation:[0f,0f,0f,1f],"\
-            f"scale:[1.0f,1.0f,1.0f]"\
-        f"}}"\
-        f"}}\n"\
-        f"execute unless score @s cf_block_{group} matches 1 as @e[type=interaction,tag=layer_{pos_layer},tag=yawstep_{pos_angle}] at @s run "\
-            f"summon text_display ^ ^ ^ {{"\
-            f"Tags:[\"color_field\",\"color_field_ui\",\"ui_block_{group}\"],"\
-            f"text:{{\"text\":\"{char_replace(group)}\",\"color\":\"dark_gray\"}},"\
-            f"billboard:\"center\","\
-            f"brightness:{{block:15,sky:15}},"\
-            f"transformation:{{"\
-                f"translation:[0f,0f,0f],"\
-                f"left_rotation:[0f,0f,0f,1f],"\
-                f"right_rotation:[0f,0f,0f,1f],"\
-                f"scale:[1.0f,1.0f,1.0f]"\
-            f"}}"\
-        f"}}\n\n"\
-        f"tag @e[type=interaction,tag=layer_{pos_layer},tag=yawstep_{pos_angle},limit=1] add toggle_{group}"
+        f'execute if score @s cf_block_{group} matches 1 as @e[type=interaction,tag=layer_{pos_layer},tag=yawstep_{pos_angle}] at @s run '\
+        f'summon text_display ^ ^ ^ {{'\
+        f'Tags:["color_field","color_field_ui","ui_block_{group}"],'\
+        f'text:{{"text":"{char_replace(group)}","color":"green"}},'\
+        f'billboard:"center",'\
+        f'brightness:{{block:15,sky:15}},'\
+        f'transformation:{{'\
+            f'translation:[0f,0f,0f],'\
+            f'left_rotation:[0f,0f,0f,1f],'\
+            f'right_rotation:[0f,0f,0f,1f],'\
+            f'scale:[1.0f,1.0f,1.0f]'\
+        f'}}'\
+        f'}}\n'\
+        f'execute unless score @s cf_block_{group} matches 1 as @e[type=interaction,tag=layer_{pos_layer},tag=yawstep_{pos_angle}] at @s run '\
+            f'summon text_display ^ ^ ^ {{'\
+            f'Tags:["color_field","color_field_ui","ui_block_{group}"],'\
+            f'text:{{"text":"{char_replace(group)}","color":"dark_gray"}},'\
+            f'billboard:"center",'\
+            f'brightness:{{block:15,sky:15}},'\
+            f'transformation:{{'\
+                f'translation:[0f,0f,0f],'\
+                f'left_rotation:[0f,0f,0f,1f],'\
+                f'right_rotation:[0f,0f,0f,1f],'\
+                f'scale:[1.0f,1.0f,1.0f]'\
+            f'}}'\
+        f'}}\n\n'\
+        f'tag @e[type=interaction,tag=layer_{pos_layer},tag=yawstep_{pos_angle},limit=1] add toggle_{group}'
     )
     new_element.close
 
 def create_ui_logic(file, group):
     new_element = open(file, "w+")
     new_element.write(
-        f"execute if score @s cf_block_{group} matches 1 run scoreboard players set @s cf_block_{group} 2\n"\
-        f"execute unless score @s cf_block_{group} matches 1..2 run scoreboard players set @s cf_block_{group} 1\n"\
-        f"execute if score @s cf_block_{group} matches 2 run scoreboard players set @s cf_block_{group} 0\n"\
-        f"execute as @s run kill @e[type=text_display,tag=ui_block_{group}]\n"\
-        f"execute as @s run function color_field:ui/elements/_{group}\n"\
-        f"function color_field:render/set/set_blocks"\
+        f'execute if score @s cf_block_{group} matches 1 run scoreboard players set @s cf_block_{group} 2\n'\
+        f'execute unless score @s cf_block_{group} matches 1..2 run scoreboard players set @s cf_block_{group} 1\n'\
+        f'execute if score @s cf_block_{group} matches 2 run scoreboard players set @s cf_block_{group} 0\n'\
+        f'execute as @s run kill @e[type=text_display,tag=ui_block_{group}]\n'\
+        f'execute as @s run function color_field:ui/elements/_{group}\n'\
+        f'function color_field:render/set/set_blocks'\
     )
     new_element.close
 
 def create_render_logic(group):
     return (\
-        f"# {group}\n"\
-        f"execute \\\n"\
-        f"if score @s cf_coltype matches 8 \\\n"\
-        f"if score @s cf_block_{group} matches 1 \\\n"\
-        f"run function color_field:render/blocks/rgb/{group}\n"\
-        f"execute \\\n"\
-        f"if score @s cf_coltype matches 9 \\\n"\
-        f"if score @s cf_block_{group} matches 1 \\\n"\
-        f"run function color_field:render/blocks/hsl/{group}\n"\
-        f"execute \\\n"\
-        f"if score @s cf_coltype matches 10 \\\n"\
-        f"if score @s cf_block_{group} matches 1 \\\n"\
-        f"run function color_field:render/blocks/lab/{group}\n"\
-        f"execute \\\n"\
-        f"if score @s cf_coltype matches 11 \\\n"\
-        f"if score @s cf_block_{group} matches 1 \\\n"\
-        f"run function color_field:render/blocks/oklab/{group}\n"\
-        f"execute \\\n"\
-        f"if score @s cf_coltype matches 12 \\\n"\
-        f"if score @s cf_block_{group} matches 1 \\\n"\
-        f"run function color_field:render/blocks/oklch/{group}\n\n"\
+        f'# {group}\n'\
+        f'execute \\\n'\
+        f'if score @s cf_coltype matches 8 \\\n'\
+        f'if score @s cf_block_{group} matches 1 \\\n'\
+        f'run function color_field:render/blocks/rgb/{group}\n'\
+        f'execute \\\n'\
+        f'if score @s cf_coltype matches 9 \\\n'\
+        f'if score @s cf_block_{group} matches 1 \\\n'\
+        f'run function color_field:render/blocks/hsl/{group}\n'\
+        f'execute \\\n'\
+        f'if score @s cf_coltype matches 10 \\\n'\
+        f'if score @s cf_block_{group} matches 1 \\\n'\
+        f'run function color_field:render/blocks/lab/{group}\n'\
+        f'execute \\\n'\
+        f'if score @s cf_coltype matches 11 \\\n'\
+        f'if score @s cf_block_{group} matches 1 \\\n'\
+        f'run function color_field:render/blocks/oklab/{group}\n'\
+        f'execute \\\n'\
+        f'if score @s cf_coltype matches 12 \\\n'\
+        f'if score @s cf_block_{group} matches 1 \\\n'\
+        f'run function color_field:render/blocks/oklch/{group}\n\n'\
     )
 
+def create_render_box():
+    file = open(f"{var.SCRIPT_DIR}/render/functions/render_box.mcfunction", "w+", encoding="utf-8")
+    file.write(create_summon_string_block(0, 0, 0, "stone", "box", 64, "", '"color_field_cube",'))
+    file.write(create_summon_string_block(-var.CUBE_SIZE, 0, 0, "stone", "box", 64, "", '"color_field_cube",'))
+    file.write(create_summon_string_block(0, -var.CUBE_SIZE, 0, "stone", "box", 64, "", '"color_field_cube",'))
+    file.write(create_summon_string_block(0, 0, -var.CUBE_SIZE, "stone", "box", 64, "", '"color_field_cube",'))
+    file.write(create_summon_string_block(-var.CUBE_SIZE, -var.CUBE_SIZE, 0, "stone", "box", 64, "", '"color_field_cube",'))
+    file.write(create_summon_string_block(0, -var.CUBE_SIZE, -var.CUBE_SIZE, "stone", "box", 64, "", '"color_field_cube",'))
+    file.write(create_summon_string_block(-var.CUBE_SIZE, 0, -var.CUBE_SIZE, "stone", "box", 64, "", '"color_field_cube",'))
+    file.write(create_summon_string_block(-var.CUBE_SIZE, -var.CUBE_SIZE, -var.CUBE_SIZE, "stone", "box", 64, "", '"color_field_cube",'))
+    file.close
 
 if __name__ == "__main__":
     pass

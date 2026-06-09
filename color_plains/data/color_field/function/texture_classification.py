@@ -139,9 +139,10 @@ def recurse_texture_resolve(block: BlockVariant, model: str):
                 if "sprite" in v:
                     v = v["sprite"]
             for bk, bv in block.textures.items():
-                if k == bk and len(v) > 1 and v[0] == '#':
-                    block.textures[bk] = v
-                elif (bv == "") or (bv == '#' + k):
+                if k == bk:
+                    if bv == "":
+                        block.textures[bk] = v
+                elif bv == '#' + k:
                     block.textures[bk] = v
     pass
 
@@ -151,7 +152,9 @@ def texture_block_from_model(model: str) -> BlockVariant:
     then recurse from parent models back to the given one, setting the correct textures
     """
     name = trim_filetype(model)
-    result = BlockVariant(name)
+    parts = name.split('/')
+    block_id = parts[-1]
+    result = BlockVariant(block_id)
     recurse_texture_resolve(result, model)
     for k, v in result.textures.items():
         result.textures[k] = v
@@ -166,41 +169,302 @@ def block_models() -> list[Block]:
     blocks = []
     
     for k,v in block_files.items():
-        b = Block(k)
+        b = Block(k.removesuffix(".json"))
         for model_file in v:
             model = texture_block_from_model(model_file)
             if not (model.textures["north"] or model.textures["south"] \
                 or model.textures["west"] or model.textures["east"] \
                 or model.textures["up"] or model.textures["down"] \
                 or model.textures["particle"]):
-                print(f"failed resolving texture for\n{model.identifier}")
+                print(f"failed resolving texture for\n{model.block_ids[0]}")
                 continue
-            duplicate_exists = any(model.textures == existing.textures for existing in b.variants)
-            if not duplicate_exists:
+            matching_model = None
+            for existing in b.variants:
+                if model.textures == existing.textures:
+                    matching_model = existing
+                    break
+            if matching_model:
+                matching_model.block_ids.append(model.block_ids[0])
+            else:
                 b.variants.append(model)
         blocks.append(b)
 
     file = open(f"{var.SCRIPT_DIR}/info/all_models_with_unique_texture_lists.txt", "w+")
     for b in blocks:
-        file.write(f"{len(b.variants)}\t{b.id}\n")
+        file.write(f"{b.id}\n")
         if len(b.variants) > 0:
             for model in b.variants:
+                for i in model.block_ids:
+                    file.write(f"\t{i}\n")
                 file.write(f"\t\t{model.textures}\n")
     file.close()
     return blocks
 
+def classify_blocks(row):
+    key_text = row['Key']
+    
+    # Komplexe Bedingungen basierend auf dem Text im Key
+    if "leaves" in key_text or "dark_oak" in key_text or "oak" in key_text or "birch" in key_text or "cherry" in key_text \
+        or "crimson" in key_text or "warped" in key_text or "acacia" in key_text or "azalea" in key_text \
+        or "jungle" in key_text or "spruce" in key_text or "mangrove" in key_text or "bamboo" in key_text:
+        return "wood"
+    elif "wool" in key_text or "bed" in key_text:
+        return "wool"
+    elif "_powder" in key_text:
+        return "concrete_powder"
+    elif "concrete" in key_text:
+        return "concrete"
+    elif "terracotta" in key_text:
+        return "terracotta"
+    elif "glass" in key_text:
+        return "glass"
+    elif "sculk" in key_text:
+        return "sculk"
+    elif "candle" in key_text or "froglight" in key_text or "shroomlight" in key_text or "soul" in key_text or "campfire" in key_text or "lantern" in key_text:
+        return "light"
+    elif "coral" in key_text:
+        return "coral"
+    elif "dirt" in key_text or "grass" in key_text or "mycelium" in key_text or "clay" in key_text or "gravel" in key_text or "sand" == key_text:
+        return "dirt"
+    elif "bedrock" in key_text or "command" in key_text or "spawner" in key_text or "vault" in key_text:
+        return "creative"
+    elif "stone" in key_text or "tuff" in key_text or "chiseled" in key_text or "basalt" in key_text or "bricks" in key_text \
+        or "tiles" in key_text or "resin" in key_text or "calcite" in key_text or "andesite" in key_text or "diorite" in key_text or "granite" in key_text:
+        return "stone"
+    elif "melon" in key_text or "pumpkin" in key_text:
+        return "crops"
+    elif "barrel" in key_text or "bee" in key_text or "bee" in key_text or "smoker" in key_text or "cauldron" in key_text \
+        or "brewing" in key_text or "bookshelf" in key_text or "shulker" in key_text or "bell" in key_text or "rail" in key_text \
+        or "anvil" in key_text or "furnace" in key_text:
+        return "utility"
+    elif "amethyst" in key_text or "ore" in key_text or "weathered" in key_text or "copper" in key_text or "coal" in key_text \
+        or "iron" in key_text or "gold" in key_text or "lapis" in key_text or "redstone" in key_text or "diamond" in key_text:
+        return "ore"
+    elif "ice" in key_text or "snow" in key_text:
+        return "ice"
+    elif "block" in key_text:
+        return "block"
+    elif "bricks" in key_text:
+        return "stone"
+    else:
+        return "misc"
+
+def manage_summons(blocks: list[Block]):
+    file = open(f"{var.SCRIPT_DIR}/info/summon_suffixes.txt", "w+")
+    cmds = open(f"{var.SCRIPT_DIR}/info/summons.txt", "w+")
+    skips = ("sign", "banner", "_z", "_x", "_top_left", "_side_east", "_honey", "_one_candle_lit", 
+             "_side_", "_top", "air",
+             "_empty_slot_top_mid", "_wall", "_up1", "_side1", "water", "lava", "skull",
+             "_00", "_01", "_02", "_03", "_04", "_05", "_06", "_07", "_08", "_09", "_10", "_11", "_12", "_13", "_14", "_15", # pure light blocks
+             "_stage1", "_stage2", "_stage3", "_stage4", "_stage5", "_stage6", "_stage7", # crops
+             "_hydration_1", "_hydration_2", "_hydration_3", # ghasts
+             )
+    for b in blocks:
+        core = b.id
+        for m in b.variants:
+            shortest = None
+            for s in m.block_ids:
+                if not shortest or len(s) < len(shortest):
+                    shortest = s
+            if shortest == core:
+                m.summons.append(shortest)
+                cmds.write(f"{shortest}\n")
+                continue
+            suffixes = shortest.removeprefix(core)
+            is_skip = any(skip in suffixes for skip in skips)
+            # file.write(f"{suffixes}\t\t{shortest}\n")
+            if is_skip or core.startswith("waxed") or core.startswith("infested"):
+                continue
+            elif suffixes == "_y" or suffixes == "_up0" or suffixes == "_side0" or suffixes == "_ns" or suffixes == "_n":
+                m.summons.append(core)
+            elif "_bottom" in suffixes: # blocks that are 2 tall → doors / big flowers
+                m.summons.append(core + 'half:"upper"') 
+                m.summons.append(core + 'half:"lower"')
+            elif suffixes == "_post": # fences, walls, panes, bars
+                m.summons.append(core + 'north:"true",south:"true"')
+                m.summons.append(core + 'west:"true",east:"true"')
+            elif suffixes.endswith("_cap"): # bars go to this and not _post
+                m.summons.append(core + 'north:"true",south:"true"')
+                m.summons.append(core + 'west:"true",east:"true"')
+            elif suffixes == "_open": # trap doors
+                m.summons.append(core + 'half:"bottom"')
+                m.summons.append(core + 'open:"true"')
+            elif suffixes == "1_age0": # bamboo
+                m.summons.append(core + 'leaves:"none"')
+            elif suffixes == "_small_leaves": # bamboo
+                m.summons.append(core + 'leaves:"small"')
+            elif suffixes == "_large_leaves": # bamboo
+                m.summons.append(core + 'leaves:"large"')
+            elif suffixes == "_on": # rails furnaces, redstone components, lightning rods ...
+                m.summons.append(core + 'on:"true",lit:"true",powered:"true"')
+            elif suffixes == "_open": # barrels
+                m.summons.append(core + 'open:"true"')
+            elif "_occupied" in suffixes: # chiseled bookshelf
+                m.summons.append(core + 'slot_0_occupied:"true",slot_1_occupied:"true",slot_2_occupied:"true",slot_3_occupied:"true",slot_4_occupied:"true",slot_5_occupied:"true"')
+            elif suffixes == "_empty": # bees
+                m.summons.append(core + 'honey_level:"false"')
+                m.summons.append(core + 'honey_level:"true"')
+            elif "_stage0" in  suffixes:
+                if "cocoa" in shortest:
+                    m.summons.append(core + 'age:"0"')
+                    m.summons.append(core + 'age:"1"')
+                    m.summons.append(core + 'age:"2"')
+                if "nether_wart" in shortest:
+                    m.summons.append(core + 'age:"0"')
+                    m.summons.append(core + 'age:"1"')
+                    m.summons.append(core + 'age:"3"') # really weird
+                elif "berry" in shortest or "beetroots" in shortest:
+                    m.summons.append(core + 'age:"0"')
+                    m.summons.append(core + 'age:"1"')
+                    m.summons.append(core + 'age:"2"')
+                    m.summons.append(core + 'age:"3"')
+                elif "carrots" in shortest or "potatoes" in shortest:
+                    m.summons.append(core + 'age:"1"')
+                    m.summons.append(core + 'age:"3"')
+                    m.summons.append(core + 'age:"5"')
+                    m.summons.append(core + 'age:"7"')
+                elif "wheat" in shortest:
+                    m.summons.append(core + 'age:"0"')
+                    m.summons.append(core + 'age:"1"')
+                    m.summons.append(core + 'age:"2"')
+                    m.summons.append(core + 'age:"3"')
+                    m.summons.append(core + 'age:"4"')
+                    m.summons.append(core + 'age:"5"')
+                    m.summons.append(core + 'age:"6"')
+                    m.summons.append(core + 'age:"7"')
+            elif suffixes == "bed":
+                m.summons.append(core + 'part:"foot"')
+            elif suffixes == "_one_candle":
+                m.summons.append(core + 'candles:"1"')
+                m.summons.append(core + 'candles:"2"')
+                m.summons.append(core + 'candles:"3"')
+                m.summons.append(core + 'candles:"4"')
+                m.summons.append(core + 'candles:"1",lit:"true"')
+                m.summons.append(core + 'candles:"2",lit:"true"')
+                m.summons.append(core + 'candles:"3",lit:"true"')
+                m.summons.append(core + 'candles:"4",lit:"true"')
+            elif suffixes == "_hydration_0":
+                m.summons.append(core + 'hydration:"0"')
+                m.summons.append(core + 'hydration:"1"')
+                m.summons.append(core + 'hydration:"2"')
+                m.summons.append(core + 'hydration:"3"')
+            elif suffixes == "mushroom_block_inside":
+                if core == "brown_mushroom_block":
+                    m.summons.append(core + 'north:"false",south:"false",east:"false",west:"false",up:"false",down:"false"')
+            elif suffixes == "_active":
+                if "sculk" in core:
+                    m.summons.append(core + 'sculk_sensor_phase:"active"')
+                    m.summons.append(core + 'sculk_sensor_phase:"inactive"')
+                elif "vault" in core:
+                    m.summons.append(core + 'vault_state:"active"')
+                else:
+                    m.summons.append(core + 'trial_spawner_state:"active"')
+            elif core.endswith("slab"):
+                m.summons.append(core + 'half:"top"')
+                m.summons.append(core + 'half:"bottom"')
+                m.summons.append(core + 'type:"double"')
+            elif suffixes == "_conditional":
+                m.summons.append(core + 'conditional:"true"')
+            elif suffixes == "_vertical":
+                m.summons.append(core + 'facing:"up"')
+            elif suffixes == "_lit_powered":
+                m.summons.append(core + 'lit:"true",powered:"true"')
+            elif suffixes == "_powered":
+                m.summons.append(core + 'powered:"true"')
+            elif suffixes == "_lit":
+                if core.startswith("cave_vines"):
+                    m.summons.append(core + 'age:"24",berries:"true"')
+                else:
+                    m.summons.append(core + 'lit:"true"')
+            elif suffixes == "_side":
+                m.summons.append(core)
+            elif suffixes == "_snow" or suffixes == "grass_block_snow":
+                m.summons.append(core + 'snowy:"true"')
+            elif suffixes == "lightning_rod_on": # weatthered variants fall back to original
+                m.summons.append(core + 'powered:"true"')
+            elif suffixes == "_0":
+                if "frosted" in core:
+                    m.summons.append(core + 'age:"0"')
+                    m.summons.append(core + 'age:"1"')
+                    m.summons.append(core + 'age:"2"')
+                    m.summons.append(core + 'age:"3"')
+                elif "respawn" in core:
+                    m.summons.append(core + 'charges:"0"')
+                    m.summons.append(core + 'charges:"1"')
+                    m.summons.append(core + 'charges:"2"')
+                    m.summons.append(core + 'charges:"3"')
+                    m.summons.append(core + 'charges:"4"')
+                elif "suspicious" in core:
+                    m.summons.append(core + 'dusted:"0"')
+                    m.summons.append(core + 'dusted:"1"')
+                    m.summons.append(core + 'dusted:"2"')
+                    m.summons.append(core + 'dusted:"3"')
+                else:
+                    m.summons.append(core + 'segment_amount:"1"')
+                    m.summons.append(core + 'segment_amount:"2"')
+                    m.summons.append(core + 'segment_amount:"3"')
+                    m.summons.append(core + 'segment_amount:"4"')
+            elif suffixes == "_1" or suffixes == "_2" or suffixes == "_3" or suffixes == "_4" or suffixes == "_base" or suffixes == "piston_base" or suffixes == "_full":
+                continue
+            elif suffixes == "_off":
+                m.summons.append(core + 'powered:"false"')
+            elif suffixes == "_1tick":
+                m.summons.append(core + 'delay:"0"')
+                m.summons.append(core + 'delay:"1"')
+                m.summons.append(core + 'delay:"2"')
+                m.summons.append(core + 'delay:"3"')
+            elif suffixes == "_1tick_on":
+                m.summons.append(core + 'delay:"0",powered:"true"')
+                m.summons.append(core + 'delay:"1",powered:"true"')
+                m.summons.append(core + 'delay:"2",powered:"true"')
+                m.summons.append(core + 'delay:"3",powered:"true"')
+            elif suffixes == "_not_cracked":
+                m.summons.append(core + 'hatch:"0"')
+            elif suffixes == "_slightly_cracked":
+                m.summons.append(core + 'hatch:"1"')
+            elif suffixes == "_very_cracked":
+                m.summons.append(core + 'hatch:"2"')
+            elif suffixes == "_height2":
+                m.summons.append(core + 'layers:"1"')
+                m.summons.append(core + 'layers:"2"')
+                m.summons.append(core + 'layers:"3"')
+                m.summons.append(core + 'layers:"4"')
+                m.summons.append(core + 'layers:"5"')
+                m.summons.append(core + 'layers:"6"')
+                m.summons.append(core + 'layers:"7"')
+                m.summons.append(core + 'layers:"8"')
+
+            else:
+                file.write(f"{suffixes}\t\t{shortest}\n")
+    file.close()
+
 def filter_blocks(blocks: list[Block]):
     """
-    some models are defined through block state and model files, tho it seems wrong
-    like how banners get the textures of oak_planks
-    same with beds
-    all heads get assigned the texture of soul_sand
+    assign groups for each block
     """
-    pass
+    colors = ("black", "blue", "brown", "cyan", "gray", "green", "light_blue", "light_gray", "lime", "magenta", "orange", "pink", "purple", "red", "white", "yellow")
+    woods = ("acacia", "birch", "cherry", "crimson", "dark_oak", "jungle", "mangrove", "pale", "oak", "warped", "spruce")
+    rocks = ("stone", "diorite", "granite", "andesite", "basalt")
+    for b in blocks:
+        is_color = any(color in b.id for color in colors)
+        is_wood = any(wood in b.id for wood in woods)
+        is_rock = any(rock in b.id for rock in rocks)
+
+        for m in b.variants:
+            if is_color:
+                m.groups.append("color")
+            if is_wood:
+                m.groups.append("wood")
+            if is_rock:
+                m.groups.append("rock")
 
 
 if __name__ == "__main__":
-    blocks = block_models()
+    # blocks = block_models()
 
+    # manage_summons(blocks)
+    
+    # filter_blocks(blocks)
+    
     pass
 

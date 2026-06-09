@@ -48,8 +48,7 @@ def tick_append_interaction(tick_file):
 def click_append_interaction(click_file):
     click_file.write("\ndata remove entity @s interaction\n")
 
-def generate_logic(data):
-    groups = data["category"].unique()
+def generate_logic(groups):
     layer = 4
     angle = 330
     load = open_from_template(f"{var.SCRIPT_DIR}/load")
