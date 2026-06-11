@@ -4,21 +4,12 @@ from MC_Color_space.color_plains.data.color_field.function.block_class import Bl
 from MC_Color_space.color_plains.data.color_field.function.block_class import BlockVariant
 import json
 import numpy as np
-import pandas as pd
 from tqdm import tqdm
-import ast
 from PIL import Image
+import matplotlib.pyplot as plt
 from pathlib import Path
 from collections import defaultdict
-
-from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
-
-try:
-    from pyclustering.cluster.clique import clique
-    CLIQUE_AVAILABLE = True
-except ImportError:
-    CLIQUE_AVAILABLE = False
+import re
 
 def trim_filetype(name):
     parts = name.split(".")
@@ -86,7 +77,7 @@ def list_block_models() -> defaultdict[str, list[str]]:
                     except json.JSONDecodeError:
                         print(f"Error! couldnt read this file : {file_path.name}")
 
-    file = open(f"{var.SCRIPT_DIR}/info/all_models.txt", "w+")
+    file = open(f"{var.SCRIPT_DIR}/info/all_models.txt", "w+", encoding="utf-8")
     for k,v in key.items():
         for m in v:
             file.write(f"{m}\n")
@@ -99,9 +90,43 @@ def open_texture(image_path: str) -> np.ndarray:
     if image_path.endswith(".png"):
         img = Image.open(image_path)
         img = img.convert("RGBA")
-        pixels = np.array(img).tolist()
+        pixels = np.array(img)
         img.close()
     return pixels
+
+def display_texture(img: np.ndarray):
+    """Display an image array in a new matplotlib window."""
+
+    def on_key(event):
+        if event.key == "escape":
+            plt.close("all")
+
+    try:
+        plt.imshow(img, cmap="gray")
+
+        plt.axis("on")
+
+        fig = plt.gcf()
+        fig.canvas.mpl_connect("key_press_event", on_key)
+
+        plt.show()
+
+    except KeyboardInterrupt:
+        plt.close("all")
+        return
+    
+def save_texture(img: np.ndarray, path: str):
+    """Speichert ein Bild-Array als Datei ab, statt es anzuzeigen."""
+    try:
+        plt.imshow(img, cmap="gray")
+        plt.axis("on")
+
+        plt.savefig(path, bbox_inches="tight", dpi=300)
+
+    except Exception as e:
+        print(f"Error storing in {path}: {e}")
+    finally:
+        plt.close("all")
 
 def recurse_texture_resolve(model: BlockVariant, model_path: str):
 
@@ -175,6 +200,7 @@ def texture_block_from_model(model: str) -> BlockVariant:
         for e in elements:
             faces = e.get("faces")
             if faces:
+                i = 0
                 for v in faces.values():
                     texture_placeholder = v.get("texture")
                     texture = result.textures[0]
@@ -182,13 +208,8 @@ def texture_block_from_model(model: str) -> BlockVariant:
                         if texture_placeholder == '#' + identifier:
                             texture = file
                             break
-                    try:
-                        pix = open_texture(prepend_texture_path(texture))
-                    except Exception as e:
-                        print(e)
-                        print(texture)
-                        print(name)
-                        exit()
+                    image = open_texture(prepend_texture_path(texture))
+                    pix = image.tolist()
                     uv = v.get("uv")
                     x1,y1,x2,y2 = 0,0,15,15
                     if uv:
@@ -196,12 +217,15 @@ def texture_block_from_model(model: str) -> BlockVariant:
                         x2 = int(uv[2])
                         y1 = int(uv[1])
                         y2 = int(uv[3])
+                    used_texture = image[y1:y2,x1:x2,:]
+                    save_texture(used_texture, f"{var.SCRIPT_DIR}/info/{block_id}_{i}_used.png")
+                    i += 1
                     x = x1
                     while x < x2:
                         y = y1
                         while y < y2:
-                            if pix[x][y][3] > 0:
-                                result.pixels.append(pix[x][y])
+                            if pix[y][x][3] > 0:
+                                result.pixels.append(pix[y][x])
                             y += 1
                         x += 1
     return result
@@ -218,18 +242,37 @@ def block_models() -> list[Block]:
         b = Block(k.removesuffix(".json"))
         for model_file in v:
             model = texture_block_from_model(model_file)
+            model.block_id = b.id
             b.variants.append(model)
         blocks.append(b)
 
-    file = open(f"{var.SCRIPT_DIR}/info/all_models_with_unique_texture_lists.txt", "w+")
+    file = open(f"{var.SCRIPT_DIR}/info/all_models_with_unique_texture_lists.txt", "w+", encoding="utf-8")
     for b in blocks:
         file.write(f"{b.id}\n")
         if len(b.variants) > 0:
             for model in b.variants:
-                file.write(f"\t{model.block_id}\n")
+                file.write(f"\t{model.model_id}\n")
                 file.write(f"\t\t{model.textures}\n")
     file.close()
     return blocks
+
+def prune_duplicates(blocks: list[Block]):
+    for b in blocks:
+        stay: list[BlockVariant] = []
+        for m in b.variants:
+            is_duplicate = False
+            for comp in b.variants:
+                if (comp.model_id == m.model_id):
+                    continue
+                if len(m.pixels) == len(comp.pixels):
+                    mset = set(tuple(pixel) for pixel in m.pixels)
+                    cset = set(tuple(pixel) for pixel in comp.pixels)
+                    if (mset == cset):
+                        is_duplicate = True
+            if not is_duplicate:
+                stay.append(m)
+                
+        b.variants = stay
 
 def classify_blocks(row):
     key_text = row['Key']
@@ -280,9 +323,289 @@ def classify_blocks(row):
     else:
         return "misc"
 
+def manage_props(blocks: list[Block]):
+    file = open(f"{var.SCRIPT_DIR}/info/summon_suffixes_two.txt", "w+", encoding="utf-8")
+    cmds = open(f"{var.SCRIPT_DIR}/info/summons.txt", "w+", encoding="utf-8")
+
+    all_suff = []
+
+    for b in blocks:
+        for m in b.variants:
+            m.groups.append("all")
+            if m.block_id == m.model_id:
+                continue
+            suffixes = m.model_id.removeprefix(m.block_id)
+            parts = re.split(r"(?=_)", suffixes)
+            not_found = []
+            for i in range(len(parts)):
+                p = parts[i]
+                p2 = None
+                if i + 1 < len(parts):
+                    p2 = parts[i + 1]
+                p3 = None
+                if i + 2 < len(parts):
+                    p3 = parts[i + 2]
+                pm = None
+                if i - 1 >= 0:
+                    pm = parts[i - 1]
+                if p.startswith("_stage"): #age
+                    value = p.removeprefix("_stage")
+                    if "torchflower" in m.block_id:
+                        m.properties.append(f'age:"{value}"')
+                    elif m.block_id.startswith("cocoa"):
+                        m.properties.append(f'age:"{value}"')
+                    elif m.block_id.startswith("nether_wart"):
+                        m.properties.append(f'age:"{value if int(value) < 2 else 3}"')
+                    elif m.block_id.startswith("beet"):
+                        m.properties.append(f'age:"{value}"')
+                    elif m.block_id.startswith("frosted"):
+                        m.properties.append(f'age:"{value}"')
+                    elif m.block_id.startswith("sweet"):
+                        m.properties.append(f'age:"{value}"')
+                    elif m.block_id.startswith("pitcher"):
+                        m.properties.append(f'age:"{value}"')
+                    elif m.block_id.startswith("mangrove"):
+                        m.properties.append(f'age:"{value}"')
+                    elif m.block_id.startswith("chorus"):
+                        m.properties.append(f'age:"{value}"')
+                    elif m.block_id.startswith("wheat"):
+                        m.properties.append(f'age:"{value}"')
+                    elif m.block_id.startswith("pumpkin"):
+                        m.properties.append(f'age:"{value}"')
+                    elif m.block_id.startswith("melon"):
+                        m.properties.append(f'age:"{value}"')
+                    elif m.block_id.startswith("carrots"):
+                        m.properties.append(f'age:"{int(value) * 2 + 1}"')
+                    elif m.block_id.startswith("potatoes"):
+                        m.properties.append(f'age:"{int(value) * 2 + 1}"')
+                    elif m.block_id.startswith("fire"):
+                        m.properties.append(f'age:"{value}"')
+                    elif m.block_id.startswith("cactus"):
+                        m.properties.append(f'age:"{value}"')
+                    elif m.block_id.startswith("sugar"):
+                        m.properties.append(f'age:"{value}"')
+                    elif "vines" in m.block_id:
+                        m.properties.append(f'age:"{value}"')
+                    elif "kelp" in m.block_id:
+                        m.properties.append(f'age:"{value}"')
+                elif p == "_attatched":
+                    m.properties.append('attatched:"true"')
+                elif m.block_id.startswith("bell"):
+                    if p == "_ceiling":
+                        m.properties.append('attachment:"ceiling"')
+                    if p == "_between":
+                        m.properties.append('attachment:"double_wall"')
+                    if p == "_floor":
+                        m.properties.append('attachment:"floor"')
+                    if p == "_wall":
+                        m.properties.append('attachment:"single_wall"')
+                elif p == "_x":
+                    m.properties.append('axis:"x"')
+                elif p == "_y":
+                    m.properties.append('axis:"y"')
+                elif p == "_z":
+                    m.properties.append('axis:"z"')
+                elif p == "_lit":
+                    if m.block_id.startswith("cave"):
+                        m.properties.append('berries:"true"')
+                    m.properties.append('lit:"true"')
+                elif m.block_id.startswith("cake"):
+                    if p == "_slice":
+                        value = p.removeprefix("_slice")
+                        m.properties.append(f'bites:"{value}"')
+                elif p == "_bloom":
+                    m.properties.append('bloom:"true"')
+                elif p == "_stable":
+                    m.properties.append('bottom:"true"')
+                elif p == "_side":
+                    if p2 and p2 == "_tall":
+                        m.properties.append('north:"tall"')
+                    elif p2 and p2 == "_small":
+                        m.properties.append('north:"low"')
+                    elif p2 and p2 == "_north":
+                        m.properties.append('north:"true"')
+                    elif p2 and p2 == "_south":
+                        m.properties.append('south:"true"')
+                    elif p2 and p2 == "_west":
+                        m.properties.append('west:"true"')
+                    elif p2 and p2 == "_east":
+                        m.properties.append('east:"true"')
+                    elif "bars" in m.block_id or "pane" in m.block_id:
+                        if p2:
+                            m.properties.append('north:"true"')
+                            m.properties.append('south:"true"')
+                        else:
+                            m.properties.append('west:"true"')
+                            m.properties.append('east:"true"')
+                elif p == "_pressed":
+                    m.properties.append('powered:"true"')
+                elif p == "_powered":
+                    m.properties.append('powered:"true"')
+                elif p == "_on":
+                    m.properties.append('powered:"true"')
+                elif p == "_open":
+                    m.properties.append('open:"true"')
+                elif p.startswith("_candle"):
+                    if pm and pm == "_one":
+                        m.properties.append('candles:"1"')
+                    if pm and pm == "_two":
+                        m.properties.append('candles:"2"')
+                    if pm and pm == "_three":
+                        m.properties.append('candles:"3"')
+                    if pm and pm == "_four":
+                        m.properties.append('candles:"4"')
+                elif p == "_left":
+                    if m.block_id.endswith("shelf"):
+                        m.properties.append('side_chain:"left"')
+                        m.properties.append('powered:"true"')
+                    elif m.block_id.endswith("door"):
+                        m.properties.append('left:"true"')
+                elif p == "_right":
+                    if m.block_id.endswith("shelf"):
+                        m.properties.append('side_chain:"right"')
+                        m.properties.append('powered:"true"')
+                    elif m.block_id.endswith("door"):
+                        m.properties.append('right:"true"')
+                elif p == "_center":
+                    m.properties.append('side_chain:"center"')
+                    m.properties.append('powered:"true"')
+                elif p == "_bottom":
+                    m.properties.append('half:"bottom"')
+                elif p == "_inner":
+                    m.properties.append('shape:"inner_left"')
+                elif p == "_outer":
+                    m.properties.append('shape:"outer_right"')
+                elif p == "_down":
+                    m.properties.append('powered:"true"')
+                elif p == "_offn":
+                    m.properties.append('powered:"false"')
+                elif p == "_north":
+                    m.properties.append('north:"true"')
+                elif p == "_south":
+                    m.properties.append('south:"true"')
+                elif p == "_west":
+                    m.properties.append('west:"true"')
+                elif p == "_east":
+                    m.properties.append('east:"true"')
+                elif p == "_leaves":
+                    if pm and pm == "_large":
+                        m.properties.append('leaves:"large"')
+                    if pm and pm == "_small":
+                        m.properties.append('leaves:"small"')
+                elif p == "_honey":
+                    m.properties.append('honey_level:"5"')
+                elif p == "_conditional":
+                    m.properties.append('conditional:"true"')
+                elif p == "_slot":
+                    if pm and pm == "_empty":
+                        if p2 and p2 == "_top":
+                            if p3 and p3 == "_left":
+                                m.properties.append('slot_0_occupied:"false"')
+                                m.properties.append('slot_1_occupied:"true"')
+                                m.properties.append('slot_2_occupied:"true"')
+                                m.properties.append('slot_3_occupied:"true"')
+                                m.properties.append('slot_4_occupied:"true"')
+                                m.properties.append('slot_5_occupied:"true"')
+                            elif p3 and p3 == "_mid":
+                                m.properties.append('slot_0_occupied:"true"')
+                                m.properties.append('slot_1_occupied:"false"')
+                                m.properties.append('slot_2_occupied:"true"')
+                                m.properties.append('slot_3_occupied:"true"')
+                                m.properties.append('slot_4_occupied:"true"')
+                                m.properties.append('slot_5_occupied:"true"')
+                            elif p3 and p3 == "_right":
+                                m.properties.append('slot_0_occupied:"true"')
+                                m.properties.append('slot_1_occupied:"true"')
+                                m.properties.append('slot_2_occupied:"false"')
+                                m.properties.append('slot_3_occupied:"true"')
+                                m.properties.append('slot_4_occupied:"true"')
+                                m.properties.append('slot_5_occupied:"true"')
+                        elif p2 and p2 == "_bottom":
+                            if p3 and p3 == "_left":
+                                m.properties.append('slot_0_occupied:"true"')
+                                m.properties.append('slot_1_occupied:"true"')
+                                m.properties.append('slot_2_occupied:"true"')
+                                m.properties.append('slot_3_occupied:"false"')
+                                m.properties.append('slot_4_occupied:"true"')
+                                m.properties.append('slot_5_occupied:"true"')
+                            elif p3 and p3 == "_mid":
+                                m.properties.append('slot_0_occupied:"true"')
+                                m.properties.append('slot_1_occupied:"true"')
+                                m.properties.append('slot_2_occupied:"true"')
+                                m.properties.append('slot_3_occupied:"true"')
+                                m.properties.append('slot_4_occupied:"false"')
+                                m.properties.append('slot_5_occupied:"true"')
+                            elif p3 and p3 == "_right":
+                                m.properties.append('slot_0_occupied:"true"')
+                                m.properties.append('slot_1_occupied:"true"')
+                                m.properties.append('slot_2_occupied:"true"')
+                                m.properties.append('slot_3_occupied:"true"')
+                                m.properties.append('slot_4_occupied:"true"')
+                                m.properties.append('slot_5_occupied:"false"')
+                    elif pm and pm == "_occupied":
+                        if p2 and p2 == "_top":
+                            if p3 and p3 == "_left":
+                                m.properties.append('slot_0_occupied:"true"')
+                                m.properties.append('slot_1_occupied:"false"')
+                                m.properties.append('slot_2_occupied:"false"')
+                                m.properties.append('slot_3_occupied:"false"')
+                                m.properties.append('slot_4_occupied:"false"')
+                                m.properties.append('slot_5_occupied:"false"')
+                            elif p3 and p3 == "_mid":
+                                m.properties.append('slot_0_occupied:"false"')
+                                m.properties.append('slot_1_occupied:"true"')
+                                m.properties.append('slot_2_occupied:"false"')
+                                m.properties.append('slot_3_occupied:"false"')
+                                m.properties.append('slot_4_occupied:"false"')
+                                m.properties.append('slot_5_occupied:"false"')
+                            elif p3 and p3 == "_right":
+                                m.properties.append('slot_0_occupied:"false"')
+                                m.properties.append('slot_1_occupied:"false"')
+                                m.properties.append('slot_2_occupied:"true"')
+                                m.properties.append('slot_3_occupied:"false"')
+                                m.properties.append('slot_4_occupied:"false"')
+                                m.properties.append('slot_5_occupied:"false"')
+                        elif p2 and p2 == "_bottom":
+                            if p3 and p3 == "_left":
+                                m.properties.append('slot_0_occupied:"false"')
+                                m.properties.append('slot_1_occupied:"false"')
+                                m.properties.append('slot_2_occupied:"false"')
+                                m.properties.append('slot_3_occupied:"true"')
+                                m.properties.append('slot_4_occupied:"false"')
+                                m.properties.append('slot_5_occupied:"false"')
+                            elif p3 and p3 == "_mid":
+                                m.properties.append('slot_0_occupied:"false"')
+                                m.properties.append('slot_1_occupied:"false"')
+                                m.properties.append('slot_2_occupied:"false"')
+                                m.properties.append('slot_3_occupied:"false"')
+                                m.properties.append('slot_4_occupied:"true"')
+                                m.properties.append('slot_5_occupied:"false"')
+                            elif p3 and p3 == "_right":
+                                m.properties.append('slot_0_occupied:"false"')
+                                m.properties.append('slot_1_occupied:"false"')
+                                m.properties.append('slot_2_occupied:"false"')
+                                m.properties.append('slot_3_occupied:"false"')
+                                m.properties.append('slot_4_occupied:"false"')
+                                m.properties.append('slot_5_occupied:"true"')
+                
+                elif p == "_post" or p == "_noside" or p == "_unconnected" or  p == "_unpowered" or  p == "_empty" or  p == "_large" or  p == "_small" or  p == "_mirrored" \
+                        or p == "_one" or p == "_two" or p == "_three" or p == "_four" or p == "_cap" or p == "_alt":
+                    continue
+                
+
+                else:
+                    not_found.append(p)
+            if len(not_found) > 1:
+                all_suff.append("".join(not_found) + "\t\t" + m.model_id)
+
+    # unique = set(all_suff)
+    for s in all_suff:
+        file.write(f"{s}\n")
+    file.close()
+
 def manage_summons(blocks: list[Block]):
-    file = open(f"{var.SCRIPT_DIR}/info/summon_suffixes.txt", "w+")
-    cmds = open(f"{var.SCRIPT_DIR}/info/summons.txt", "w+")
+    file = open(f"{var.SCRIPT_DIR}/info/summon_suffixes.txt", "w+", encoding="utf-8")
+    cmds = open(f"{var.SCRIPT_DIR}/info/summons.txt", "w+", encoding="utf-8")
     skips = ("sign", "banner", "_z", "_x", "_top_left", "_side_east", "_honey", "_one_candle_lit", 
              "_side_", "_top", "air",
              "_empty_slot_top_mid", "_wall", "_up1", "_side1", "water", "lava", "skull",
@@ -486,14 +809,74 @@ def filter_blocks(blocks: list[Block]):
             if is_rock:
                 m.groups.append("rock")
 
+def store_blocks(blocks: list[Block]):
+    for b in tqdm(blocks, total=len(blocks), desc="storing_models"):
+        for m in b.variants:
+            m.fields["block_id"] = m.block_id
+            m.fields["model_id"] = m.model_id
+            m.fields["pixels"] = []
+            m.fields["summons"] = []
+            m.fields["properties"] = []
+            for p in m.pixels:
+                m.fields["pixels"].append(p)
+            for s in m.summons:
+                m.fields["summons"].append(s)
+            for p in m.properties:
+                m.fields["properties"].append(p)
+            file = open(f"{var.SCRIPT_DIR}/models/{m.model_id}", "w+", encoding="utf-8")
+            json.dump(m.fields, file)
+            file.close()
+
+def load_blocks() -> list[Block]:
+    collection: dict[str, Block] = {}
+    files = list(Path(f"{var.SCRIPT_DIR}/models/").iterdir())
+
+    for file_path in tqdm(files, desc="load models", unit="file"):
+        with open(file_path, "r", encoding="utf-8") as file:
+            data = json.load(file)
+
+        model = BlockVariant(data["model_id"])
+        model.block_id = data["block_id"]
+        model.pixels = data["pixels"]
+        model.properties = data["properties"]
+        model.summons = data["summons"]
+
+        model.textures = data["textures"]
+
+        if model.block_id not in collection:
+            collection[model.block_id] = Block(model.block_id)
+            
+        collection[model.block_id].variants.append(model)
+
+    return list(collection.values())
+
 
 if __name__ == "__main__":
 
-    # m = texture_block_from_model("/mnt/c/Users/Clemens/Documents/ColorTheory/Minecraft-default-assets/assets/minecraft/models/block/blast_furnace.json")
+    m = texture_block_from_model("/mnt/c/Users/Clemens/Documents/ColorTheory/Minecraft-default-assets/assets/minecraft/models/block/cake.json")
+    m2 = texture_block_from_model("/mnt/c/Users/Clemens/Documents/ColorTheory/Minecraft-default-assets/assets/minecraft/models/block/cake_slice1.json")
 
-    # file = open(f"{var.SCRIPT_DIR}/info/combined.json", "w+")
-    # json.dump(m.fields, file)
-    # file.close()
+    b = Block("bamboo_block")
+    m.block_id = b.id
+    m2.block_id = b.id
+    b.variants.append(m)
+    b.variants.append(m2)
+    bs = []
+    bs.append(b)
+    prune_duplicates(bs)
+    manage_props(bs)
+    print(m.properties)
+    print(m2.properties)
+
+    file = open(f"{var.SCRIPT_DIR}/info/combined.json", "w+", encoding="utf-8")
+    json.dump(m.fields, file)
+    file.close()
+    file = open(f"{var.SCRIPT_DIR}/info/combined2.json", "w+", encoding="utf-8")
+    json.dump(m2.fields, file)
+    file.close()
+
+    print(len(m.pixels))
+    print(len(m2.pixels))
 
     # blocks = block_models()
 

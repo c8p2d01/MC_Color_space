@@ -20,8 +20,8 @@ except ImportError:
     CLIQUE_AVAILABLE = False
 
 def test_summon(blocks: list[Block]):
-    file = open(str(var.SCRIPT_DIR) + "/test_summon_all.mcfunction", "w+")
-    debug = open(str(var.SCRIPT_DIR) + "/info/summons", "w+")
+    file = open(str(var.SCRIPT_DIR) + "/test_summon_all.mcfunction", "w+", encoding="utf-8")
+    debug = open(str(var.SCRIPT_DIR) + "/info/summons", "w+", encoding="utf-8")
     x = 0
     z = 0
     for b in blocks:
@@ -38,24 +38,24 @@ def test_summon(blocks: list[Block]):
     debug.close()
 
 def test_variant_summon(blocks: list[Block]):
-    file = open(str(var.SCRIPT_DIR) + "/test_summon_variants.mcfunction", "w+")
+    file = open(str(var.SCRIPT_DIR) + "/test_summon_variants.mcfunction", "w+", encoding="utf-8")
     x = 0
     z = 0
     for b in blocks:
         for m in b.variants:
-            for s in m.summons:
-                file.write(\
-                    mc_writer.create_summon_string_block(x, 0, z, b.id, "all_blocks", scale_divisor=var.CUBE_SIZE, properties=s.removeprefix(b.id))
-                    )
-                x += 2
-                if x >= 80:
-                    x = 0
-                    z  += 2
+            props = ','.join(m.properties)
+            file.write(\
+                mc_writer.create_summon_string_block(x, 0, z, m.block_id, "all_blocks", scale_divisor=var.CUBE_SIZE, properties=props)
+                )
+            x += 2
+            if x >= 80:
+                x = 0
+                z  += 2
     file.close()
 
 def test_group_summon(blocks: list[Block], groups: list[str]):
-    file = open(str(var.SCRIPT_DIR) + "/test_group_summon.mcfunction", "w+")
-    debug = open(str(var.SCRIPT_DIR) + "/info/test_summons", "w+")
+    file = open(str(var.SCRIPT_DIR) + "/test_group_summon.mcfunction", "w+", encoding="utf-8")
+    debug = open(str(var.SCRIPT_DIR) + "/info/test_summons", "w+", encoding="utf-8")
     z = {}
     for g in groups:
         z[g] = 0
@@ -72,39 +72,35 @@ def test_group_summon(blocks: list[Block], groups: list[str]):
 
 
 
-def generate_summons(data):
-    groups = data["category"].unique()
+def generate_summons(blocks, groups):
     rgb_files = {}
     hsl_files = {}
     lab_files = {}
     oklab_files = {}
     oklch_files = {}
     for g in groups:
-        rgb_files[g] = open(f"{var.SCRIPT_DIR}/render/blocks/rgb/{g}.mcfunction", "w+")
-        hsl_files[g] = open(f"{var.SCRIPT_DIR}/render/blocks/hsl/{g}.mcfunction", "w+")
-        lab_files[g] = open(f"{var.SCRIPT_DIR}/render/blocks/lab/{g}.mcfunction", "w+")
-        oklab_files[g] = open(f"{var.SCRIPT_DIR}/render/blocks/oklab/{g}.mcfunction", "w+")
-        oklch_files[g] = open(f"{var.SCRIPT_DIR}/render/blocks/oklch/{g}.mcfunction", "w+")
+        rgb_files[g] = open(f"{var.SCRIPT_DIR}/render/blocks/rgb/{g}.mcfunction", "w+", encoding="utf-8")
+        hsl_files[g] = open(f"{var.SCRIPT_DIR}/render/blocks/hsl/{g}.mcfunction", "w+", encoding="utf-8")
+        lab_files[g] = open(f"{var.SCRIPT_DIR}/render/blocks/lab/{g}.mcfunction", "w+", encoding="utf-8")
+        oklab_files[g] = open(f"{var.SCRIPT_DIR}/render/blocks/oklab/{g}.mcfunction", "w+", encoding="utf-8")
+        oklch_files[g] = open(f"{var.SCRIPT_DIR}/render/blocks/oklch/{g}.mcfunction", "w+", encoding="utf-8")
 
-    for index, row in data.iterrows():
-        block_id = row['Key']
-        texture_list = ast.literal_eval(row['Items'])
-        group = row['category']
+        for b in blocks:
+            for m in b.variants:
+                if g in m.groups:
+                    display_positions = tsys.find_positions(m.pixels)
+                    for p in display_positions:
+                        x,y,z = colmath.rgb_to_rgb(p[0], p[1], p[2])
+                        rgb_files[g].write(mc_writer.create_summon_string_block(x, y, z, m.block_id, g))
+                        x,y,z = colmath.xyz_to_hsl(p[0], p[1], p[2])
+                        hsl_files[g].write(mc_writer.create_summon_string_block(x, y, z, m.block_id, g))
+                        x,y,z = colmath.xyz_to_lab(p[0], p[1], p[2])
+                        lab_files[g].write(mc_writer.create_summon_string_block(x, y, z, m.block_id, g))
+                        x,y,z = colmath.xyz_to_oklab(p[0], p[1], p[2])
+                        oklab_files[g].write(mc_writer.create_summon_string_block(x, y, z, m.block_id, g))
+                        x,y,z = colmath.xyz_to_oklch(p[0], p[1], p[2])
+                        oklch_files[g].write(mc_writer.create_summon_string_block(x, y, z, m.block_id, g))
         
-        display_positions = tsys.find_positions(texture_list)
-
-        for p in display_positions:
-             x,y,z = colmath.rgb_to_rgb(p[0], p[1], p[2])
-             rgb_files[group].write(mc_writer.create_summon_string_block(x, y, z, block_id, group))
-             x,y,z = colmath.xyz_to_hsl(p[0], p[1], p[2])
-             hsl_files[group].write(mc_writer.create_summon_string_block(x, y, z, block_id, group))
-             x,y,z = colmath.xyz_to_lab(p[0], p[1], p[2])
-             lab_files[group].write(mc_writer.create_summon_string_block(x, y, z, block_id, group))
-             x,y,z = colmath.xyz_to_oklab(p[0], p[1], p[2])
-             oklab_files[group].write(mc_writer.create_summon_string_block(x, y, z, block_id, group))
-             x,y,z = colmath.xyz_to_oklch(p[0], p[1], p[2])
-             oklch_files[group].write(mc_writer.create_summon_string_block(x, y, z, block_id, group))
-    
     for g in groups:
         rgb_files[g].close()
         hsl_files[g].close()
@@ -121,21 +117,33 @@ if __name__ == "__main__":
     mc_writer.create_ui_markers(f"{var.SCRIPT_DIR}/ui/sphere_markers.mcfunction")
     mc_writer.create_render_box()
 
-    blocks = tclass.block_models()
+    files = list(Path(f"{var.SCRIPT_DIR}/models/").iterdir())
+
+    if len(files) > 1000:
+        blocks = tclass.load_blocks()
+    else:
+        blocks = tclass.block_models()
+        tclass.prune_duplicates(blocks)
+        tclass.store_blocks(blocks)
     # # filter_blocks(blocks)
-    tclass.manage_summons(blocks)
+    tclass.manage_props(blocks)
+
+    # tclass.manage_summons(blocks)
 
     test_variant_summon(blocks)
 
-    test_summon(blocks)
+    # test_summon(blocks)
 
     # data = frame_blocks(blocks)
 
-    # generate_logic(data)
+    groups = []
+
+    groups.append("all")
+
+    generate_logic(groups)
     
-    # try:
-    #     generate_summons(data)
-    # except Exception as e:
-    #     print(f"Error: {e}\n")
+
+    generate_summons(blocks, groups)
+
 
     pass

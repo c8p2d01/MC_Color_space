@@ -30,7 +30,7 @@ def create_summon_string_block(x, y, z, block, group, scale_divisor=32, properti
         f'block_state:{{'
         f'Name:"{block}"'
         + ( f',Properties:{{'
-            f'{properties}'
+            f'{(properties)}'
             f'}}'
         if properties != "" else "")
         + f'}}'
@@ -62,7 +62,7 @@ def render_append_interaction(render_file):
     )
 
 def create_ui_markers(file):
-    sphere_markers = open(file, "w+")
+    sphere_markers = open(file, "w+", encoding="utf-8")
     offset = var.AZIMUTH_STEP / 2
     for i, pitch in enumerate(var.LAYER_OFFSETS):
         for step in range(0, 360, var.AZIMUTH_STEP):
@@ -73,7 +73,7 @@ def create_ui_markers(file):
     sphere_markers.close
 
 def create_ui_element(file, group, pos_layer, pos_angle):
-    new_element = open(file, "w+")
+    new_element = open(file, "w+", encoding="utf-8")
     new_element.write(
         f'execute if score @s cf_block_{group} matches 1 as @e[type=interaction,tag=layer_{pos_layer},tag=yawstep_{pos_angle}] at @s run '\
         f'summon text_display ^ ^ ^ {{'\
@@ -106,7 +106,7 @@ def create_ui_element(file, group, pos_layer, pos_angle):
     new_element.close
 
 def create_ui_logic(file, group):
-    new_element = open(file, "w+")
+    new_element = open(file, "w+", encoding="utf-8")
     new_element.write(
         f'execute if score @s cf_block_{group} matches 1 run scoreboard players set @s cf_block_{group} 2\n'\
         f'execute unless score @s cf_block_{group} matches 1..2 run scoreboard players set @s cf_block_{group} 1\n'\

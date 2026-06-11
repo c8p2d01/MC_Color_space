@@ -21,7 +21,7 @@ install:
 	@$(PYTHON) -m ensurepip --upgrade || \
 		curl -s https://bootstrap.pypa.io/get-pip.py | $(PYTHON)
 	$(PYTHON) -m pip install --upgrade pip setuptools wheel build \
-		flake8 pydantic numpy Pillow pyclustering scipy scikit-learn colormath coloraide polars pandas tqdm
+		flake8 pydantic numpy Pillow pyclustering scipy scikit-learn colormath coloraide polars pandas tqdm matplotlib
 
 textures:
 	git clone -b 26.1.2 https://github.com/PixiGeko/Minecraft-default-assets

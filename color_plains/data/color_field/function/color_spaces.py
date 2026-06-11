@@ -12,8 +12,8 @@ import math
 import numpy as np
 
 def generate_rgb(path):
-    destination_4 = open(path, "w+")
-    counter = 0;
+    destination_4 = open(path, "w+", encoding="utf-8")
+    counter = 0
     STEP = var.CUBE_SIZE / (var.RESOLUTION - 1)
     for x in range(var.RESOLUTION):
         for y in range(var.RESOLUTION):
@@ -30,7 +30,7 @@ def generate_rgb(path):
     destination_4.close()
 
 def generate_hsl(path):
-    destination_4 = open(path, "w+")
+    destination_4 = open(path, "w+", encoding="utf-8")
 
     HUE_RESOLUTION = 24
     SATURATION_RESOLUTION = 12
@@ -155,7 +155,7 @@ def classify_density(x, y, z):
 def generate(path, typ, densities, math):
     files = []
     for i in range(densities):
-        f = open(path + "/" + typ + "/" + "density_" + str(i + 1) + ".mcfunction", "a")
+        f = open(path + "/" + typ + "/" + "density_" + str(i + 1) + ".mcfunction", "a", encoding="utf-8")
         files.append(f)
 
     for x in range(var.RESOLUTION):
@@ -186,7 +186,7 @@ def generate(path, typ, densities, math):
         f.close()
         
 def generate_random(path, typ, mathfunc, fileno=4):
-    f = open(path + "/" + typ + "/" + "density_" + str(fileno) + ".mcfunction", "w+")
+    f = open(path + "/" + typ + "/" + "density_" + str(fileno) + ".mcfunction", "w+", encoding="utf-8")
     
     SAMPLES = 4000
 
@@ -209,7 +209,7 @@ def generate_random(path, typ, mathfunc, fileno=4):
 
 def reset_folder(dir, n):
     for i in range(n):
-        file = open(f"{dir}/density_{i + 1}.mcfunction", "w+")
+        file = open(f"{dir}/density_{i + 1}.mcfunction", "w+", encoding="utf-8")
         if (i == 0):
             file.close()
             continue

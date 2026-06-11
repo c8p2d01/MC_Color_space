@@ -6,7 +6,7 @@ def open_from_template(template: str):
     template_file = template + "_template"
     target_file = template + ".mcfunction"
     shutil.copy2(template_file, target_file)
-    result = open(target_file, "a+")
+    result = open(target_file, "a+", encoding="utf-8")
     return result
 
 

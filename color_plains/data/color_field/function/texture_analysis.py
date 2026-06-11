@@ -113,12 +113,12 @@ def merge_close_midpoints(midpoints, threshold=0.1):
         
     return merged
 
-def find_positions(pixels):
+def find_positions(points):
     midpoints = []
     points = []
         
-    pts = rgb_to_3d_points(pixels, normalize=True, scale=1.0)
-    points.append(pts)
+    # pts = rgb_to_3d_points(pixels, normalize=True, scale=1.0)
+    # points.append(pts)
 
     if points:
         combined_points = np.concatenate(points, axis=0)
