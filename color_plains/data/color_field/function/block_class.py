@@ -1,4 +1,4 @@
-import MC_Color_space.color_plains.data.color_field.function.variables as var
+import variables as var
 import numpy as np
 import json
 

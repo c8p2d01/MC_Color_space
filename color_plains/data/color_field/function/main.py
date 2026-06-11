@@ -1,17 +1,17 @@
-import MC_Color_space.color_plains.data.color_field.function.variables as var
-import MC_Color_space.color_plains.data.color_field.function.color_conversion as colmath
-import MC_Color_space.color_plains.data.color_field.function.mc_writer as mc_writer
-from MC_Color_space.color_plains.data.color_field.function.datapack_logic import generate_logic
-import MC_Color_space.color_plains.data.color_field.function.texture_analysis as tsys
-import MC_Color_space.color_plains.data.color_field.function.texture_classification as tclass
+import variables as var
+import color_conversion as colmath
+import mc_writer as mc_writer
+from datapack_logic import generate_logic
+import texture_analysis as tsys
+import texture_classification as tclass
 import numpy as np
 import pandas as pd
 import ast
 from PIL import Image
 from pathlib import Path
 from collections import defaultdict
-from MC_Color_space.color_plains.data.color_field.function.block_class import Block
-from MC_Color_space.color_plains.data.color_field.function.block_class import BlockVariant
+from block_class import Block
+from block_class import BlockVariant
 
 try:
     from pyclustering.cluster.clique import clique
@@ -88,7 +88,7 @@ def generate_summons(blocks, groups):
         for b in blocks:
             for m in b.variants:
                 if g in m.groups:
-                    display_positions = tsys.find_positions(m.pixels)
+                    display_positions = tsys.find_positions(m.pixels, m.model_id)
                     for p in display_positions:
                         x,y,z = colmath.rgb_to_rgb(p[0], p[1], p[2])
                         rgb_files[g].write(mc_writer.create_summon_string_block(x, y, z, m.block_id, g))

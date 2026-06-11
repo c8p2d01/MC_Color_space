@@ -1,7 +1,7 @@
-import MC_Color_space.color_plains.data.color_field.function.variables as var
-import MC_Color_space.color_plains.data.color_field.function.mc_writer as mc_writer
-from MC_Color_space.color_plains.data.color_field.function.block_class import Block
-from MC_Color_space.color_plains.data.color_field.function.block_class import BlockVariant
+import variables as var
+import mc_writer as mc_writer
+from block_class import Block
+from block_class import BlockVariant
 import json
 import numpy as np
 from tqdm import tqdm
@@ -869,10 +869,10 @@ if __name__ == "__main__":
     print(m2.properties)
 
     file = open(f"{var.SCRIPT_DIR}/info/combined.json", "w+", encoding="utf-8")
-    json.dump(m.fields, file)
+    json.dump(m.pixels, file)
     file.close()
     file = open(f"{var.SCRIPT_DIR}/info/combined2.json", "w+", encoding="utf-8")
-    json.dump(m2.fields, file)
+    json.dump(m2.pixels, file)
     file.close()
 
     print(len(m.pixels))

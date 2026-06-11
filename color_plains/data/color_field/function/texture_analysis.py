@@ -1,40 +1,45 @@
-import MC_Color_space.color_plains.data.color_field.function.variables as var
+import variables as var
 import numpy as np
 from PIL import Image
 
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
-def rgb_to_3d_points(pixel_array, normalize=True, scale=1.0):
-    if pixel_array.ndim != 3 or pixel_array.shape[2] != 3:
-        raise ValueError('Expected RGB pixel array with shape (H, W, 3)')
-    points = pixel_array.reshape((-1, 3)).astype(np.float64)
-    if normalize:
-        points /= 255.0
-    points *= scale
-    return points
+import numpy as np
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
 
 def rgba_list_to_3d_points(rgba_list, normalize=True, scale=1.0):
+    """
+    Konvertiert eine flache RGBA-Liste oder eine 2D-Liste von RGBA-Werten
+    in 3D-Koordinaten (RGB) und filtert unsichtbare Pixel heraus.
+    """
     rgba_array = np.array(rgba_list, dtype=np.float64)
     
+    # Falls die Liste flach ist (1D), formatiere sie zu (N, 4) um
+    if rgba_array.ndim == 1:
+        if rgba_array.size % 4 != 0:
+            raise ValueError('Die flache RGBA-Liste muss eine Länge aufweisen, die durch 4 teilbar ist.')
+        rgba_array = rgba_array.reshape((-1, 4))
+    
     if rgba_array.ndim != 2 or rgba_array.shape[1] != 4:
-        raise ValueError('expected an array of rgba arrays')
+        raise ValueError('Erwartet ein Array mit dem Shape (N, 4) oder eine flache RGBA-Liste.')
+    
+    # Filtert komplett transparente Pixel heraus (Alpha > 0)
     mask = rgba_array[:, 3] > 0
     visible_rgba = rgba_array[mask]
+    
+    # Nutze nur die RGB-Kanäle als 3D-Punkte
     points = visible_rgba[:, :3]
+    
     if normalize:
         points /= 255.0
     points *= scale
     
     return points
-
-#
-# Currently using KMeans to determine positions
-#
 
 def estimate_k(points, k_min=2, k_max=12):
     unique_point_count = len(np.unique(points, axis=0))
-
     k_max = min(k_max, unique_point_count)
 
     if k_max < k_min:
@@ -60,19 +65,23 @@ def estimate_k(points, k_min=2, k_max=12):
 
 def cluster_points(points, min_cluster_size=10, k=None):
     unique_point_count = len(np.unique(points, axis=0))
+    if unique_point_count == 0:
+        return np.array([]), np.array([]), 0
+        
     if k is None:
         k = estimate_k(points)
     k = min(k, unique_point_count)
+
+    if k < 1:
+        return np.array([]), np.array([]), 0
 
     model = KMeans(n_clusters=k, n_init='auto', random_state=42)
     labels = model.fit_predict(points)
 
     unique_labels, counts = np.unique(labels, return_counts=True)
-
     valid_clusters = unique_labels[counts >= min_cluster_size]
 
     mask = np.isin(labels, valid_clusters)
-
     filtered_points = points[mask]
     filtered_labels = labels[mask]
 
@@ -80,7 +89,6 @@ def cluster_points(points, min_cluster_size=10, k=None):
 
 def compute_cluster_means(points, labels):
     unique_labels = np.unique(labels)
-
     means = []
 
     for label in unique_labels:
@@ -92,7 +100,7 @@ def compute_cluster_means(points, labels):
 
 def merge_close_midpoints(midpoints, threshold=0.1):
     if len(midpoints) <= 1:
-        return midpoints
+        return np.array(midpoints).tolist()
     
     merged = []
     used = set()
@@ -113,23 +121,36 @@ def merge_close_midpoints(midpoints, threshold=0.1):
         
     return merged
 
-def find_positions(points):
-    midpoints = []
-    points = []
-        
-    # pts = rgb_to_3d_points(pixels, normalize=True, scale=1.0)
-    # points.append(pts)
+def find_positions(rgba_list, name):
+    """
+    Hauptfunktion: Akzeptiert die neue flache RGBA-Liste, wandelt sie in 3D-Punkte um,
+    clustert diese und gibt die gemittelten Farbmittelpunkte zurück.
+    """
+    # 1. Konvertiere die RGBA-Liste in 3D-Punkte (RGB)
+    points = rgba_list_to_3d_points(rgba_list, normalize=True, scale=1.0)
+    
+    min = len(points) / 7
 
-    if points:
-        combined_points = np.concatenate(points, axis=0)
-        filtered_points, labels, k = cluster_points(
-            combined_points,
-            min_cluster_size=25
-        )
-        unique_labels = np.unique(labels)
-        midpoints = compute_cluster_means(filtered_points, labels)
-        return (merge_close_midpoints(midpoints))
-    return ([])
+    if points.shape[0] == 0:
+        print(f'no visibles found in {name}')
+        return []
+
+    # 2. Clustere die Punkte anhand ihrer Farbwerte
+    filtered_points, labels, k = cluster_points(
+        points,
+        min_cluster_size=min
+    )
+    
+    if filtered_points.shape[0] == 0:
+        print(f'no clusters bigeer than {min} in {name}')
+        return []
+        
+    # 3. Berechne die Durchschnittsfarben der Cluster
+    midpoints = compute_cluster_means(filtered_points, labels)
+    
+    # 4. Verschmelze nahe beieinanderliegende Farbmittelpunkte
+    return merge_close_midpoints(midpoints, threshold=0.1)
+
 
 if __name__ == "__main__":
     pass
