@@ -1,7 +1,7 @@
-import variables as var
-import mc_writer as mc_writer
-from block_class import Block
-from block_class import BlockVariant
+import MC_Color_space.color_plains.data.color_field.function.variables as var
+import MC_Color_space.color_plains.data.color_field.function.mc_writer as mc_writer
+from MC_Color_space.color_plains.data.color_field.function.block_class import Block
+from MC_Color_space.color_plains.data.color_field.function.block_class import BlockVariant
 import json
 import numpy as np
 from tqdm import tqdm

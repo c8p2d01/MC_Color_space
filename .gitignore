@@ -2,6 +2,7 @@
 __pycache__/
 *.py[codz]
 *$py.class
+color_plains/data/color_field/function/models/*
 
 # C extensions
 *.so
